@@ -27,4 +27,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: your-docker-username/your-image-name:latest
+          tags: chasea1135/pari_lab_server:latest
