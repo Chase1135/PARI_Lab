@@ -1,26 +1,15 @@
-from socket import *
+from fastapi import FastAPI, HTTPException
 
-ip = '0.0.0.0'
-port = 5000
-server_socket = socket(AF_INET, SOCK_STREAM)
+app = FastAPI()
 
-print("Binding to IP and port...", flush=True)
-server_socket.bind((ip, port))
-print("Bound successfully.", flush=True)
+@app.get("/textual")
+async def get_textual_data():
+    return {"message": "This is the textual data endpoint"}
 
-print("Listening for incoming connections...", flush=True)
-server_socket.listen(1)
-print("Ready to receive connections.", flush=True)
-print(f"Listening on {ip}:{port}", flush=True)
+@app.get("/visual")
+async def get_visual_data():
+    return {"message": "This is the visual data endpoint"}
 
-print("testing the automated builds", flush=True)
-
-while True:
-    client_socket, addr = server_socket.accept()
-    data = client_socket.recv(1024).decode()
-    print("Received data from client: " + data, flush=True)
-
-    client_socket.close()
-
-    if (data == 'end'):
-        break
+@app.get("/physical")
+async def get_physical_data():
+    return {"message": "This is the physical data endpoint"}
