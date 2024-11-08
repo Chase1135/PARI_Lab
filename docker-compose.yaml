@@ -3,4 +3,4 @@ services:
   fastapi:
     build: .
     ports:
-      - "5000:5000"
+      - "5000:5000"  # Maps internal port 5000 to host's port 5000
