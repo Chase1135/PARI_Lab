@@ -1,17 +1,19 @@
-# Use an official Python runtime as a parent image
+# Use a base image with Python
 FROM python:3.9
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /app
 
-# Install any needed packages specified in requirements.txt
+# Copy requirements.txt into the working directory
+COPY requirements.txt .
+
+# Install dependencies
 RUN pip install -r requirements.txt
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+# Copy the rest of the application code
+COPY . .
 
-# Make port 5000 available to the world outside this container
 EXPOSE 5000
 
-# Run Uvicorn server
+# Command to run the app
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
