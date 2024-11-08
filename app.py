@@ -13,6 +13,8 @@ server_socket.listen(1)
 print("Ready to receive connections.")
 print(f"Listening on {ip}:{port}", flush=True)
 
+print("testing the automated builds", flush=True)
+
 while True:
     client_socket, addr = server_socket.accept()
     data = client_socket.recv(1024).decode()
