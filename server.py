@@ -1,15 +1,21 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 
 app = FastAPI()
 
-@app.get("/textual")
-async def get_textual_data():
-    return {"message": "This is the textual data endpoint"}
+@app.post("/textual")
+async def get_textual_data(request: Request):
+    data = await request.json()
+    print("Received textual data:", data)
+    return {"message": "Textual data received", "data": data}
 
-@app.get("/visual")
-async def get_visual_data():
-    return {"message": "This is the visual data endpoint"}
+@app.post("/visual")
+async def get_visual_data(request: Request):
+    data = await request.json()
+    print("Received visual data:", data)
+    return {"message": "Visual data received", "data": data}
 
-@app.get("/physical")
-async def get_physical_data():
-    return {"message": "This is the physical data endpoint"}
+@app.post("/physical")
+async def get_physical_data(request: Request):
+    data = await request.json()
+    print("Received physical data:", data)
+    return {"message": "Physical data received", "data": data}
