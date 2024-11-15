@@ -2,6 +2,8 @@ version: "3.9"
 services:
   fastapi:
     build: .
-    image: chasea1135/pari-lab-server:latest
+    image: chasea1135/pari_lab_server:latest
+    environment:
+      - SERVER_IP=${SERVER_IP}
     ports:
       - "5000:5000"  # Maps internal port 5000 to host's port 5000
