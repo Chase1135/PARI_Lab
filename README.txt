@@ -7,3 +7,6 @@ HOW TO RUN WITHIN DOCKER DESKTOP:
 1. clone repository, install necessary dependencies (pydadntic, fastapi, uvicorn)
 2. open docker terminal, navigate to project folder
 3. type 'docker-compose up' in terminal
+
+TO TEST:
+Invoke-RestMethod -Uri "http://'insertiphere':5000/textual" -Method Post -Headers @{ "Content-Type" = "application/json" } -Body '{"sample": "textual data"}'

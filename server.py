@@ -1,21 +1,73 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, WebSocket
+import json
 
 app = FastAPI()
 
-@app.post("/textual")
-async def get_textual_data(request: Request):
-    data = await request.json()
-    print("Received textual data:", data)
-    return {"message": "Textual data received", "data": data}
+#TEXTUAL ENDPOINT
+@app.websocket("/ws/textual")
+async def websocket_textual_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            #grab data, convert to json, print to confirm
+            data = await websocket.receive_text()
+            print(f"Received raw data: {data}", flush=True)
+            json_data = json.loads(data)
+            print(f"Received textual data: {json_data}", flush=True)
 
-@app.post("/visual")
-async def get_visual_data(request: Request):
-    data = await request.json()
-    print("Received visual data:", data)
-    return {"message": "Visual data received", "data": data}
+            #return OK to client
+            response = {"status": "received", "type": "textual", "content": json_data}
+            await websocket.send_text(json.dumps(response))
+    except Exception as e:
+        print(f"Error in textual endpoint: {e}", flush=True)
+    finally:
+        try:
+            await websocket.close()
+        except Exception as e:
+            print(f"Error closing WebSocket: {e}", flush=True)
 
-@app.post("/physical")
-async def get_physical_data(request: Request):
-    data = await request.json()
-    print("Received physical data:", data)
-    return {"message": "Physical data received", "data": data}
+#VISUAL ENDPOINT
+@app.websocket("/ws/visual")
+async def websocket_visual_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            #grab data, convert to json, print to confirm
+            data = await websocket.receive_text()
+            print(f"Received raw data: {data}", flush=True)
+            json_data = json.loads(data)
+            print(f"Received visual data: {json_data}")
+
+            #return OK to client
+            response = {"status": "received", "type": "visual", "content": json_data}
+            await websocket.send_text(json.dumps(response))
+    except Exception as e:
+        print(f"Error in visual endpoint: {e}")
+    finally:
+        try:
+            await websocket.close()
+        except Exception as e:
+            print(f"Error closing WebSocket: {e}", flush=True)
+
+#PHYSICAL ENDPOINT
+@app.websocket("/ws/physical")
+async def websocket_dynamic_endpoint(websocket: WebSocket, data_type: str):
+    await websocket.accept()
+    try:
+        while True:
+            #grab data, convert to json, print to confirm
+            data = await websocket.receive_text()
+            print(f"Received raw data: {data}", flush=True)
+            json_data = json.loads(data)
+            print(f"Received physical data: {json_data}")
+
+            #return OK to client
+            response = {"status": "received", "type": "physical", "content": json_data}
+            await websocket.send_text(json.dumps(response))
+    except Exception as e:
+        print(f"Error in physical endpoint: {e}")
+    finally:
+        try:
+            await websocket.close()
+        except Exception as e:
+            print(f"Error closing WebSocket: {e}", flush=True)
