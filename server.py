@@ -1,5 +1,6 @@
 from fastapi import FastAPI, WebSocket
 import json
+from response_generator import generate_response
 
 app = FastAPI()
 
@@ -15,8 +16,11 @@ async def websocket_textual_endpoint(websocket: WebSocket):
             json_data = json.loads(data)
             print(f"Received textual data: {json_data}", flush=True)
 
+            #GENERATE A RESPONSE
+            response = generate_response(json_data['message'])
+
             #return OK to client
-            response = {"status": "received", "type": "textual", "content": json_data}
+            #response = {"status": "received", "type": "textual", "content": json_data}
             await websocket.send_text(json.dumps(response))
     except Exception as e:
         print(f"Error in textual endpoint: {e}", flush=True)
