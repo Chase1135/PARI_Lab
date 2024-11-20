@@ -5,7 +5,7 @@ HOW TO RUN WITHIN DOCKER DESKTOP:
 4. if run from images tab, enter port # (5000)
 
 RUNNING LOCALLY:
-1. clone repository, install necessary dependencies (pydantic, fastapi, uvicorn, websockets)
+1. clone repository, install necessary dependencies (pydantic, fastapi, uvicorn, websockets, ollama)
 2. open docker terminal, navigate to project folder
 3. type 'docker-compose up --build' in terminal
 

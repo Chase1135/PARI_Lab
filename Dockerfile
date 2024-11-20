@@ -10,10 +10,18 @@ COPY requirements.txt .
 # Install dependencies
 RUN pip install -r requirements.txt
 
+# Download and install Ollama for Linux
+RUN curl -fsSL https://ollama.com/install.sh | sh
+
 # Copy the rest of the application code
 COPY . .
 
+# Copy the start_servers.sh script to the container
+COPY start_servers.sh /start_servers.sh
+
 EXPOSE 5000
 
-# Command to run the app
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "5000"]
+RUN chmod +x /start_servers.sh
+
+# Command to run the app and Ollama server
+CMD ["/start_servers.sh"]

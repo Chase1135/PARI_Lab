@@ -1,5 +1,8 @@
 fastapi
 uvicorn
 websockets
+<<<<<<< HEAD
 httpx
+=======
+>>>>>>> 8613e2c8f352337105b8ef5806f31aaea4655952
 ollama
