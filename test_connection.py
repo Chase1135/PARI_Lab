@@ -2,15 +2,18 @@ import asyncio
 import websockets
 
 async def test_connection():
-    uri = "ws://192.168.1.125:5000/ws/textual" 
-    async with websockets.connect(uri, ping_interval=10, ping_timeout=20) as websocket:
+    uri = "ws://localhost:5000/ws/textual" 
+    async with websockets.connect(uri, ping_interval=20, ping_timeout=40) as websocket:
         while True:
             message = input("Enter message to send (or 'exit' to quit): ")
             await websocket.send(f'{{"message": "{message}"}}')
             
             try:
-                response = await websocket.recv()
-                print(f"Response: {response}")
+                async for chunk in websocket:
+                    print(chunk,end="",flush=True)
+                    if "[END OF RESPONSE]" in chunk:
+                        print()
+                        break
             except websockets.exceptions.ConnectionClosedError as e:
                 print(f"Connection closed with error: {e}")
                 break
