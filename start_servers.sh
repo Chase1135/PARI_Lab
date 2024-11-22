@@ -3,7 +3,7 @@
 # Start the Ollama server in the background
 ollama serve &
 
-#sleep 3
+sleep 3
 
 # Check if the model already exists
 if ! ollama list | grep -q "llama3.2"; then
