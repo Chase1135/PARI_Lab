@@ -14,7 +14,9 @@ async def websocket_textual_endpoint(websocket: WebSocket):
                 #grab data, convert to json, print to confirm
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
                 print(f"Received raw data: {data}", flush=True)
-                json_data = json.loads(data)
+
+                formatted_data = f'{{"message": "{data}"}}'
+                json_data = json.loads(formatted_data)
                 print(f"Received textual data: {json_data}", flush=True)
 
                 #GENERATE A RESPONSE
