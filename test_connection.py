@@ -10,7 +10,7 @@ async def test_connection():
             
             try:
                 async for chunk in websocket:
-                    print(chunk,end="",flush=True)
+                    print(chunk, end="", flush=True)
                     if "[END OF RESPONSE]" in chunk:
                         print()
                         break
