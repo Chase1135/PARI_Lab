@@ -1,14 +1,15 @@
 import requests
 import time
 
-# Generate API KEY, see: https://docs.speechflow.io/#/?id=generate-api-key
+# Generated API KEY
 API_KEY_ID = "s1XyepwyxRdijzuf"
 API_KEY_SECRET = "3ht6liNE015yjdiZ"
-# The language code of the speech in media file.
-# See more lang code: https://docs.speechflow.io/#/?id=ap-lang-list
+
+# Language of speech file
 LANG = "en"
-# The local path or remote path of media file.
-FILE_PATH = "harvard.wav"
+
+# The local or remote path of media file.
+FILE_PATH = "../harvard.wav"
 # FILE_PATH = "https://sf-docs-prod.s3.us-west-1.amazonaws.com/web/sample-audios/EN.wav"
 
 # The translation result type.
@@ -16,7 +17,7 @@ FILE_PATH = "harvard.wav"
 # 2, the json format for the generated subtitles with begin time and end time.
 # 3, the srt format for the generated subtitles with begin time and end time.
 # 4, the plain text format for transcription results without begin time and end time.
-RESULT_TYPE = 4
+RESULT_TYPE = 1
 
 headers = {"keyId": API_KEY_ID, "keySecret": API_KEY_SECRET}
 
