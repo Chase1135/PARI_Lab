@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # Download and install Ollama for Linux
-RUN curl -fsSL https://ollama.com/install.sh | sh
+RUN if ! command -v ollama &> /dev/null; then curl -fsSL https://ollama.com/install.sh | sh; fi
 
 # Copy the rest of the application code
 COPY . .
