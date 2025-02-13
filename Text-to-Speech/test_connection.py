@@ -2,10 +2,42 @@ import asyncio
 import websockets
 import json
 import wave
-from PlayHD import generate_speech
 
 async def test_connection():
+    uri = "ws://localhost:5000/ws/generic" 
+
+    async with websockets.connect(uri, ping_interval=20, ping_timeout=40) as websocket:
+        metadata = {"name": "test", "modality": "textual", "chunked": False}
+
+        while True:
+            message = input("Enter message to send (or 'exit' to quit): ")
+
+            if message.lower() == 'exit':
+                    print("Exiting...")
+                    await websocket.close()
+                    break
+            
+            await websocket.send(json.dumps(metadata))
+            await websocket.send(message)
+            
+            while True:
+                try:
+                    response = await websocket.recv()
+
+                    if response.lower() == "ping":
+                        await websocket.send("pong")
+                        continue
+                    
+                    print(f"Response: {response}")
+                    break
+
+                except websockets.exceptions.ConnectionClosedError as e:
+                    print(f"Connection closed with error: {e}")
+                    return
+
+async def wav_test_generation():
     uri = "ws://localhost:5000/ws/textual" 
+    
     async with websockets.connect(uri, ping_interval=20, ping_timeout=40) as websocket:
         while True:
             message = input("Enter message to send (or 'exit' to quit): ")
@@ -46,6 +78,6 @@ async def test_connection():
                 print(f"Connection closed with error: {e}")
                 break
 
-
 if __name__ == "__main__":
     asyncio.run(test_connection())
+    #asyncio.run(wav_test_generation())

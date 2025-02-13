@@ -1,11 +1,77 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import json, asyncio, sys, os
-from response_generator import generate_response
+from response_generator import generate_response, wav_generation_test_response
+from handlers import DEFAULT_HANDLERS, DEFAULT_INPUTS
 
 sys.path.append(os.path.abspath('Text-to-Speech'))
 from PlayHD import generate_speech, wav_to_bytes
 
+CHUNK_SIZE = 4096
+
 app = FastAPI()
+
+async def handle_metadata(metadata: dict, websocket: WebSocket):
+    name = metadata.get("name")
+    modality = metadata.get("modality")
+    chunked = metadata.get("chunked", False)
+
+    # Check if there is a specific handler for the given metadata
+    # If not, assign to default handler for associated modality
+    if 'handler' not in metadata:
+        handler = DEFAULT_HANDLERS[modality]
+    else:
+        handler = DEFAULT_INPUTS['handler']
+
+    # If data is chunked, gather into a buffer
+    # Otherwise, just receive the data
+    if chunked:
+        data = b""
+        while True:
+            chunk = await websocket.receive_bytes()
+            if chunk == "END":
+                break
+
+            data += chunk
+    else:
+        data = await websocket.receive_text()
+
+    # Call previously assigned handler with the given data
+    handler(data)
+
+
+@app.websocket("/ws/generic")
+async def websocket_generic_endpoint(websocket: WebSocket):
+    await websocket.accept()
+
+    while True:
+        try:
+            message = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
+            print(f"Message received: {message}", flush=True)
+
+            if message.lower() == "pong": # Heartbeat
+                    print("Received heartbeat 'pong'")
+                    continue
+
+            # Metadata will contain the name of sensory input and its modality
+            # Routed to correct handler based on metadata
+            try:
+                metadata = json.loads(message)
+                if isinstance(metadata, dict):
+                    print(f"Metadata parsed: {metadata}")
+                    await handle_metadata(metadata, websocket)
+
+            except json.JSONDecodeError:
+                print(f"Received text message: {message}", flush=True)
+
+            response = await generate_response()
+            await websocket.send_text(response)
+            
+        except asyncio.TimeoutError:
+            await websocket.send_text("Ping")
+            print("Ping sent", flush=True)
+        except WebSocketDisconnect as e:
+            print(f"Client disconnected with code {e.code}", flush=True)
+            break
 
 #TEXTUAL ENDPOINT
 @app.websocket("/ws/textual")
@@ -20,7 +86,7 @@ async def websocket_textual_endpoint(websocket: WebSocket):
                 if data.lower() == "pong": # Heartbeat technique, pong just keeps the socket alive
                     continue
  
-                response_text = await generate_response(data) # Generate the response from LLM
+                response_text = await wav_generation_test_response(data) # Generate the response from LLM
                 print(f"Generated response: {response_text}", flush=True)
 
                 # Convert generated response to .wav and then to raw PCM data
@@ -52,49 +118,3 @@ async def websocket_textual_endpoint(websocket: WebSocket):
     except Exception as e:
         if type(e) is not WebSocketDisconnect:
             print(f"Error in textual endpoint: {e}", flush=True)
-
-#VISUAL ENDPOINT
-@app.websocket("/ws/visual")
-async def websocket_visual_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    try:
-        while True:
-            #grab data, convert to json, print to confirm
-            data = await websocket.receive_text()
-            print(f"Received raw data: {data}", flush=True)
-            json_data = json.loads(data)
-            print(f"Received visual data: {json_data}")
-
-            #return OK to client
-            response = {"status": "received", "type": "visual", "content": json_data}
-            await websocket.send_text(json.dumps(response))
-    except Exception as e:
-        print(f"Error in visual endpoint: {e}")
-    finally:
-        try:
-            await websocket.close()
-        except Exception as e:
-            print(f"Error closing WebSocket: {e}", flush=True)
-
-#PHYSICAL ENDPOINT
-@app.websocket("/ws/physical")
-async def websocket_dynamic_endpoint(websocket: WebSocket, data_type: str):
-    await websocket.accept()
-    try:
-        while True:
-            #grab data, convert to json, print to confirm
-            data = await websocket.receive_text()
-            print(f"Received raw data: {data}", flush=True)
-            json_data = json.loads(data)
-            print(f"Received physical data: {json_data}")
-
-            #return OK to client
-            response = {"status": "received", "type": "physical", "content": json_data}
-            await websocket.send_text(json.dumps(response))
-    except Exception as e:
-        print(f"Error in physical endpoint: {e}")
-    finally:
-        try:
-            await websocket.close()
-        except Exception as e:
-            print(f"Error closing WebSocket: {e}", flush=True)
