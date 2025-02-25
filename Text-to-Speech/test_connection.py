@@ -3,6 +3,7 @@ import websockets
 import json
 import wave
 
+# Test the Generic endpoint
 async def test_connection():
     uri = "ws://localhost:5000/ws/generic" 
 
@@ -16,25 +17,43 @@ async def test_connection():
                     print("Exiting...")
                     await websocket.close()
                     break
-            
+
             await websocket.send(json.dumps(metadata))
             await websocket.send(message)
             
-            while True:
-                try:
-                    response = await websocket.recv()
+            try:
+                response = await websocket.recv()
 
-                    if response.lower() == "ping":
-                        await websocket.send("pong")
-                        continue
-                    
-                    print(f"Response: {response}")
-                    break
+                if response.lower() == "ping":
+                    await websocket.send("pong")
+                    continue
+                
+                params = json.loads(response)
+                print(f"params: {params}")
 
-                except websockets.exceptions.ConnectionClosedError as e:
-                    print(f"Connection closed with error: {e}")
-                    return
+                audio_data = b""
 
+                while True:
+                    chunk = await asyncio.wait_for(websocket.recv(), timeout=30.0)
+
+                    if chunk == "END":
+                        break
+
+                    audio_data += chunk
+
+                with wave.open("Text-to-Speech/generic_reconstruction.wav", "wb") as wf:
+                    wf.setnchannels(params["nchannels"])
+                    wf.setsampwidth(params["sampwidth"])
+                    wf.setframerate(params["framerate"])
+                    wf.writeframes(audio_data)
+
+                print(".wav successfully reconstructed")
+
+            except websockets.exceptions.ConnectionClosedError as e:
+                print(f"Connection closed with error: {e}")
+                return
+
+# Test the Textual endpoint, primarily made in case of needing to demo .wav to Russ 
 async def wav_test_generation():
     uri = "ws://localhost:5000/ws/textual" 
     

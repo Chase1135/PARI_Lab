@@ -1,6 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-import json, asyncio, sys, os
-from response_generator import generate_response, wav_generation_test_response
+from contextlib import asynccontextmanager
+import json, asyncio, sys, os, httpx
+from response_generator import generate_response, wav_generation_test_response, preload_llm
 from handlers import DEFAULT_HANDLERS, DEFAULT_INPUTS
 
 sys.path.append(os.path.abspath('Text-to-Speech'))
@@ -10,6 +11,28 @@ CHUNK_SIZE = 4096
 
 app = FastAPI()
 
+# Pings startup endpoint to preload LLM
+async def notify_startup():
+    await asyncio.sleep(2)
+    async with httpx.AsyncClient() as client:
+        try:
+            await client.get("http://localhost:5000/startup")
+            print("Ollama preloaded", flush=True)
+            
+        except httpx.ConnectError:
+            print("Failed to reach startup endpoint.", flush=True)
+
+# Specifies events to take place at app startup and shutdown
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    #asyncio.create_task(notify_startup())
+    yield # Events after yield occur at shutdown
+    print("Shutting down...", flush=True)
+
+app.router.lifespan_context = lifespan
+
+# Processes metadata received to route data to correct handler, along with
+# utilizing correct method to receive data (i.e. whether data is chunked or not)
 async def handle_metadata(metadata: dict, websocket: WebSocket):
     name = metadata.get("name")
     modality = metadata.get("modality")
@@ -38,7 +61,13 @@ async def handle_metadata(metadata: dict, websocket: WebSocket):
     # Call previously assigned handler with the given data
     handler(data)
 
+# Startup endpoint to handle Ollama initialization
+@app.get("/startup")
+async def startup():
+    await preload_llm()
+    return "Ollama preloading..."
 
+# Generic Endpoint
 @app.websocket("/ws/generic")
 async def websocket_generic_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -63,8 +92,34 @@ async def websocket_generic_endpoint(websocket: WebSocket):
             except json.JSONDecodeError:
                 print(f"Received text message: {message}", flush=True)
 
+            # Generate response from LLM
             response = await generate_response()
-            await websocket.send_text(response)
+
+            # Generate .wav file from response
+            print(f"LLM Generated Response: {response}")
+            await generate_speech(response)
+
+            # Convert .wav file to raw PCM data
+            params, frames = wav_to_bytes("Text-to-Speech/playhtTest.wav")
+
+            # Grab headers to send as metadata
+            if params and frames:
+                metadata = {
+                    "nchannels": params.nchannels,
+                    "sampwidth": params.sampwidth,
+                    "framerate": params.framerate,
+                    "nframes": params.nframes
+                }
+
+            # Send .wav headers
+            await websocket.send_text(json.dumps(metadata))
+
+            # Send audio frames
+            for i in range(0, len(frames), CHUNK_SIZE):
+                await websocket.send_bytes(frames[i:i+CHUNK_SIZE])
+
+            # Send "END" indicating end of transmission
+            await websocket.send_text("END")
             
         except asyncio.TimeoutError:
             await websocket.send_text("Ping")

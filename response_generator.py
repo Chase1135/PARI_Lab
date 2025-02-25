@@ -10,6 +10,20 @@ DATA_BUFFERS = {
 }
 conversation_history = []
 
+# Sends lightweight request to preload LLM
+async def preload_llm():
+    print("Preloading Ollama model...", flush=True)
+
+    try:
+        response = ollama.chat(
+            model='llama3.2',
+            messages=[{"role": "system", "content": "This is a preload request. Ignore and return an empty response."}]
+        )
+
+    except Exception as e:
+        print(f"Error during LLM preload: {e}", flush=True)
+
+# Generate a response from LLM based upon conversation history and newest input
 async def generate_response():
     print(f"Data buffer before response generation: {DATA_BUFFERS}", flush=True)
 
