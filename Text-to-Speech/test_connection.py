@@ -98,5 +98,5 @@ async def wav_test_generation():
                 break
 
 if __name__ == "__main__":
-    asyncio.run(test_connection())
-    #asyncio.run(wav_test_generation())
+    #asyncio.run(test_connection())
+    asyncio.run(wav_test_generation())

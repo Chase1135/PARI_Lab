@@ -1,6 +1,6 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
-import json, asyncio, sys, os, httpx
+import json, asyncio, sys, os, httpx, time
 from response_generator import generate_response, wav_generation_test_response, preload_llm
 from handlers import DEFAULT_HANDLERS, DEFAULT_INPUTS
 
@@ -141,12 +141,24 @@ async def websocket_textual_endpoint(websocket: WebSocket):
                 if data.lower() == "pong": # Heartbeat technique, pong just keeps the socket alive
                     continue
  
+                # Generate response
+                start_llm = time.perf_counter()
                 response_text = await wav_generation_test_response(data) # Generate the response from LLM
+                llm_time = time.perf_counter() - start_llm
+                print(f"LLM Response Time: {llm_time:.6f} seconds", flush=True)
                 print(f"Generated response: {response_text}", flush=True)
+                
 
                 # Convert generated response to .wav and then to raw PCM data
+                start_speech = time.perf_counter()
                 await generate_speech(response_text)
+                speech_time = time.perf_counter() - start_speech
+                print(f"Speech Generation Time: {speech_time:.6f} seconds", flush=True)
+
+                start_wav = time.perf_counter()
                 params, frames = wav_to_bytes("Text-to-Speech/playhtTest.wav")
+                wav_time = time.perf_counter() - start_wav
+                print(f"WAV Processing Time: {wav_time:.6f} seconds", flush=True)
 
                 if params and frames:
                     # Convert headers to JSON format
@@ -156,15 +168,20 @@ async def websocket_textual_endpoint(websocket: WebSocket):
                         "framerate": params.framerate,
                         "nframes": params.nframes
                     }
+
+                    start_transmission = time.perf_counter()
                     await websocket.send_text(json.dumps(metadata)) # Send headers
-                    print("Sent metadata", flush=True)
 
                     chunk_size = 4096 # Must chunk audio frames to reduce size of message
                     for i in range(0, len(frames), chunk_size):
                         await websocket.send_bytes(frames[i:i+chunk_size])
 
                     await websocket.send_text("END") # Indicate end of transmission
-                    print("Sent audio frames",flush=True)
+                    transmission_time = time.perf_counter() - start_transmission
+                    print(f"Transmission Time: {transmission_time:.6f} seconds", flush=True)
+
+                    total_time = llm_time + speech_time + wav_time + transmission_time
+                    print(f"Total Time: {total_time:.6f} seconds", flush=True)
 
             except asyncio.TimeoutError: 
                 await websocket.send_text("Ping") 

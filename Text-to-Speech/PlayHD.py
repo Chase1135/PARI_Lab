@@ -4,14 +4,16 @@ import asyncio
 import wave
 
 # Jennifer - s3://voice-cloning-zero-shot/775ae416-49bb-4fb6-bd45-740f205d20a1/jennifersaad/manifest.json
+# Saul (William) - s3://mockingbird-prod/william_3_d2b62fd7-a52d-4bd1-a09a-fb2748eda979/voices/william_3/manifest.json
 # Select voice option for generation
+# Saul -
 options = TTSOptions(voice="s3://mockingbird-prod/william_3_d2b62fd7-a52d-4bd1-a09a-fb2748eda979/voices/william_3/manifest.json")
 
 # Take input text and generate speech in the form of a .wav file
 async def generate_speech(text):
     client = AsyncClient(
-        user_id="iEwn6pNjtRQZ7HJih01l339RI102",
-        api_key="86a6bbf9121049cea7ecf47d9774bccf"
+        user_id="I9inKjkH0CRfUbpQbRahudvCDZ92",
+        api_key="af968b25edf8435bb65e2a9acb93e345"
     )
 
     # Open a file to save the audio
@@ -37,7 +39,6 @@ async def generate_speech(text):
         print(f"Error during TTS: {e}", flush=True)
 
     finally:
-        print("TTS complete", flush=True)
         await client.close()
 
 # Take input .wav file path and turn .wav into bytes so that it may be transmitted across websocket
@@ -45,7 +46,6 @@ def wav_to_bytes(file_path):
     try: 
         with wave.open(file_path, 'rb') as wf: # Open .wav file in read mode
             params = wf.getparams() # Grab .wav headers
-            print(params)
             frames = wf.readframes(wf.getnframes())
             return params, frames
     
