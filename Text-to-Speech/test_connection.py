@@ -2,71 +2,37 @@ import asyncio
 import websockets
 import json
 import wave
+import requests
+import threading
 
-# Test the Generic endpoint
-async def test_connection():
-    uri = "ws://localhost:5000/ws/generic" 
+def user_input_loop(websocket, loop):
+    while True:
+        message = input("Enter message to send (or 'exit' to quit): ")
 
-    async with websockets.connect(uri, ping_interval=20, ping_timeout=40) as websocket:
-        metadata = {"name": "test", "modality": "textual", "chunked": False}
-
-        while True:
-            message = input("Enter message to send (or 'exit' to quit): ")
-
-            if message.lower() == 'exit':
-                    print("Exiting...")
-                    await websocket.close()
-                    break
-
-            await websocket.send(json.dumps(metadata))
-            await websocket.send(message)
-            
-            try:
-                response = await websocket.recv()
-
-                if response.lower() == "ping":
-                    await websocket.send("pong")
-                    continue
-                
-                params = json.loads(response)
-                print(f"params: {params}")
-
-                audio_data = b""
-
-                while True:
-                    chunk = await asyncio.wait_for(websocket.recv(), timeout=30.0)
-
-                    if chunk == "END":
-                        break
-
-                    audio_data += chunk
-
-                with wave.open("Text-to-Speech/generic_reconstruction.wav", "wb") as wf:
-                    wf.setnchannels(params["nchannels"])
-                    wf.setsampwidth(params["sampwidth"])
-                    wf.setframerate(params["framerate"])
-                    wf.writeframes(audio_data)
-
-                print(".wav successfully reconstructed")
-
-            except websockets.exceptions.ConnectionClosedError as e:
-                print(f"Connection closed with error: {e}")
-                return
+        if message.lower() == 'exit':
+                print("Exiting...")
+                asyncio.run_coroutine_threadsafe(websocket.close(), loop)
+                break
+        
+        asyncio.run_coroutine_threadsafe(websocket.send(message), loop)
 
 # Test the Textual endpoint, primarily made in case of needing to demo .wav to Russ 
 async def wav_test_generation():
+    config_raw = requests.get("http://localhost:5000/config")
+    config = config_raw.json()
+    print(config)
+
+    nchannels = config.get('nchannels')
+    sampwidth = config.get('sampwidth')
+    framerate = config.get('framerate')
+
     uri = "ws://localhost:5000/ws/textual" 
     
-    async with websockets.connect(uri, ping_interval=20, ping_timeout=40) as websocket:
+    async with websockets.connect(uri) as websocket:
+        input_thread = threading.Thread(target=user_input_loop, args=(websocket, asyncio.get_event_loop()))
+        input_thread.start()
+
         while True:
-            message = input("Enter message to send (or 'exit' to quit): ")
-
-            if message.lower() == 'exit':
-                print("Exiting...")
-                break
-
-            await websocket.send(message)
-
             try:
                 metadata = await websocket.recv()
 
@@ -86,9 +52,9 @@ async def wav_test_generation():
                     audio_data += chunk # Append to buffer
 
                 with wave.open("Text-to-Speech/wav_reconstruction_text.wav", "wb") as wf:
-                    wf.setnchannels(metadata["nchannels"])
-                    wf.setsampwidth(metadata["sampwidth"])
-                    wf.setframerate(metadata["framerate"])
+                    wf.setnchannels(nchannels)
+                    wf.setsampwidth(sampwidth)
+                    wf.setframerate(framerate)
                     wf.writeframes(audio_data)
 
                 print(".wav successfully reconstructed")
@@ -98,5 +64,4 @@ async def wav_test_generation():
                 break
 
 if __name__ == "__main__":
-    #asyncio.run(test_connection())
     asyncio.run(wav_test_generation())

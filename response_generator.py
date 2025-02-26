@@ -73,7 +73,11 @@ async def wav_generation_test_response(data):
     ]
     response = ollama.chat(
         model='llama3.2',
-        messages=messages
+        messages=messages,
+        options={
+            "temperature": 0,
+            "num_predict": 150
+        }
     )
 
     return response['message']['content']
