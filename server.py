@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
 import json, asyncio, sys, os, httpx, time
-from response_generator import generate_response, wav_generation_test_response, preload_llm
+from LLM.response_generator import generate_response, wav_generation_test_response, preload_llm
 from handlers import DEFAULT_HANDLERS, DEFAULT_INPUTS
 
 sys.path.append(os.path.abspath('Text-to-Speech'))

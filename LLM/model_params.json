@@ -1,0 +1,14 @@
+{
+    "model": "llama3.2",
+    "options": {
+      "temperature": 0,
+      "max_tokens": 100,
+      "top_p": 0.9
+    },
+    "messages": [
+      {
+        "role": "system", "content": "You are a technical research assistant. Your task is to provide precise, factual, and well-researched responses. Always answer in a clear and concise manner, providing only accurate information."
+      }
+    ]
+  }
+  
