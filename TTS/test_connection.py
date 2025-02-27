@@ -51,7 +51,7 @@ async def wav_test_generation():
 
                     audio_data += chunk # Append to buffer
 
-                with wave.open("Text-to-Speech/wav_reconstruction_text.wav", "wb") as wf:
+                with wave.open("TTS/wav_reconstruction_text.wav", "wb") as wf:
                     wf.setnchannels(nchannels)
                     wf.setsampwidth(sampwidth)
                     wf.setframerate(framerate)

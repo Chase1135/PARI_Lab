@@ -2,6 +2,7 @@ from pyht import AsyncClient
 from pyht import TTSOptions
 import asyncio
 import wave
+from utils import Benchmark
 
 # Jennifer - s3://voice-cloning-zero-shot/775ae416-49bb-4fb6-bd45-740f205d20a1/jennifersaad/manifest.json
 # Saul (William) - s3://mockingbird-prod/william_3_d2b62fd7-a52d-4bd1-a09a-fb2748eda979/voices/william_3/manifest.json
@@ -10,15 +11,21 @@ import wave
 options = TTSOptions(voice="s3://mockingbird-prod/william_3_d2b62fd7-a52d-4bd1-a09a-fb2748eda979/voices/william_3/manifest.json")
 
 # Take input text and generate speech in the form of a .wav file
+@Benchmark.time_execution
 async def generate_speech(text):
+    """
+    Chase ID and API Key
+    user_id="uXE8bhiuwZTRpIpPr8rGuTdu4mJ3"
+    api_key="71f90348232d48c79f4ea79ed3fe4a3d"
+    """
     client = AsyncClient(
-        user_id="I9inKjkH0CRfUbpQbRahudvCDZ92",
-        api_key="af968b25edf8435bb65e2a9acb93e345"
+        user_id="uXE8bhiuwZTRpIpPr8rGuTdu4mJ3",
+        api_key="71f90348232d48c79f4ea79ed3fe4a3d"
     )
 
     # Open a file to save the audio
     try:
-        with wave.open("Text-to-Speech/playhtTest.wav", "wb") as wf:
+        with wave.open("TTS/playhtTest.wav", "wb") as wf:
             
             # Headers for .wav to ensure proper playback when reconstructed
             wf.setnchannels(1)

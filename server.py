@@ -1,30 +1,29 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from contextlib import asynccontextmanager
-import json, asyncio, sys, os, httpx, time
-from LLM.response_generator import generate_response, wav_generation_test_response, preload_llm
-from handlers import DEFAULT_HANDLERS, DEFAULT_INPUTS
-
-sys.path.append(os.path.abspath('Text-to-Speech'))
-from PlayHD import generate_speech, wav_to_bytes
+import json, asyncio
+from LLM.response_generator import generate_response, wav_generation_test_response
+from processors import DEFAULT_PROCESSORS, CUSTOM_PROCESSORS
+from TTS.PlayHD import generate_speech, wav_to_bytes
+from abc import ABC, abstractmethod
+from utils import Benchmark
 
 app = FastAPI()
 
-# List of sockets to be opened within a given run
+"""List of sockets to be opened within a given run"""
 SOCKETS = [
     {"name": "textual", "modality": "textual"},
-    {"name": "audio", "modality": "audio", "receiver": "audio"},
+    {"name": "audio", "modality": "audio", "handler": "audio"},
     {"name": "visual", "modality": "visual"},
-    {"name": "physical", "modality": "physical", "receiver": "physical"}
+    {"name": "physical", "modality": "physical", "handler": "physical"}
 ]
 
 CHUNK_SIZE = 4096 # Size of chunks to transmit audio frames
 
-# Audio Headers
+"""Audio Headers"""
 NCHANNELS = 1 # Number of channels (i.e. Monoaudio)
 SAMPWIDTH = 2 # Number of bytes per sample
 FRAMERATE = 48000 # Rate of play
 
-# Config endpoint to transmit necessary parameters to Unreal Engine
+"""Config endpoint to transmit necessary parameters to Unreal Engine"""
 @app.get("/config")
 async def get_config():
     # Grab the name of each endpoint
@@ -40,50 +39,62 @@ async def get_config():
         
     return CONFIG_DATA
 
-async def keep_alive(websocket: WebSocket, interval: int = 20):
-    while True:
-        try:
-            await websocket.send_text("Ping")
-            print("Ping sent", flush=True)
-            await asyncio.sleep(interval)
-        except WebSocketDisconnect:
-            break
-        except Exception as e:
-            print(f"Error: {e}", flush=True)
-            break
+"""Base class for WebSocket handlers"""
+class BaseSocketHandler(ABC):
+    def __init__(self, websocket: WebSocket, socket_name, modality):
+        self.websocket = websocket
+        self.socket_name = socket_name
+        self.modality = modality
 
-async def textual(websocket: WebSocket):
-    await websocket.accept()
-    keep_alive_task = asyncio.create_task(keep_alive(websocket))
-    
-    try:
+        # Assign processor function dynamically
+        self.processor = CUSTOM_PROCESSORS.get(socket_name, DEFAULT_PROCESSORS[modality])
+
+    async def accept_connection(self):
+        """Accepts the WebSocket connection"""
+        await self.websocket.accept()
+        asyncio.create_task(self.keep_alive())
+
+    async def keep_alive(self, interval: int = 20):
+        """Sends periodic pings to keep the WebSocket alive"""
         while True:
             try:
-                #grab data, convert to json, print to confirm
-                data = await websocket.receive_text()
+                await self.websocket.send_text("Ping")
+                print("Ping sent", flush=True)
+                await asyncio.sleep(interval)
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                print(f"Error: {e}", flush=True)
+                break
+
+    async def process_data(self, data):
+        print(f"Received message for {self.socket_name} ({self.modality})")
+        self.processor.process(data)
+
+    @abstractmethod
+    async def handle_message(self):
+        raise NotImplementedError("Handler not implemented.")
+
+"""Handles textual WebSocket connections"""
+class TextualSocket(BaseSocketHandler):
+    async def handle_message(self):
+        await self.accept_connection()
+
+        """
+        while True:
+            try:
+                data = await self.websocket.receive_text()
                 print(f"Received raw data: {data}", flush=True)
                 if data.lower() == "pong": # Heartbeat technique, pong just keeps the socket alive
                     print("Pong received", flush=True)
                     continue
- 
-                # Generate response
-                start_llm = time.perf_counter()
-                response_text = await wav_generation_test_response(data) # Generate the response from LLM
-                llm_time = time.perf_counter() - start_llm
-                print(f"LLM Response Time: {llm_time:.6f} seconds", flush=True)
-                print(f"Generated response: {response_text}", flush=True)
-                
 
-                # Convert generated response to .wav and then to raw PCM data
-                start_speech = time.perf_counter()
+                await self.process_data(data=data)
+
+                response_text = await generate_response()
+
                 await generate_speech(response_text)
-                speech_time = time.perf_counter() - start_speech
-                print(f"Speech Generation Time: {speech_time:.6f} seconds", flush=True)
-
-                start_wav = time.perf_counter()
-                params, frames = wav_to_bytes("Text-to-Speech/playhtTest.wav")
-                wav_time = time.perf_counter() - start_wav
-                print(f"WAV Processing Time: {wav_time:.6f} seconds", flush=True)
+                params, frames = wav_to_bytes("TTS/playhtTest.wav")
 
                 if params and frames:
                     # Convert headers to JSON format
@@ -94,52 +105,102 @@ async def textual(websocket: WebSocket):
                         "nframes": params.nframes
                     }
 
-                    start_transmission = time.perf_counter()
-                    await websocket.send_text(json.dumps(metadata)) # Send headers
+                await self.websocket.send_text(json.dumps(metadata)) # Send headers
 
-                    chunk_size = 4096 # Must chunk audio frames to reduce size of message
-                    for i in range(0, len(frames), chunk_size):
-                        await websocket.send_bytes(frames[i:i+chunk_size])
+                chunk_size = 4096 # Must chunk audio frames to reduce size of message
+                for i in range(0, len(frames), chunk_size):
+                    await self.websocket.send_bytes(frames[i:i+chunk_size])
 
-                    await websocket.send_text("END") # Indicate end of transmission
-                    transmission_time = time.perf_counter() - start_transmission
-                    print(f"Transmission Time: {transmission_time:.6f} seconds", flush=True)
+                await self.websocket.send_text("END") # Indicate end of transmission
+                print(f"Total processing time for this iteration: {Benchmark.get_total_time():.6f} seconds")
 
-                    total_time = llm_time + speech_time + wav_time + transmission_time
-                    print(f"Total Time: {total_time:.6f} seconds", flush=True)
+            except Exception as e:
+                print(f"Error in textual endpoint: {e}", flush=True)
+                break
 
-            except asyncio.TimeoutError: 
-                await websocket.send_text("Ping") 
-                print("Ping sent",flush=True)
-                
-    except Exception as e:
-        if type(e) is not WebSocketDisconnect:
-            print(f"Error in textual endpoint: {e}", flush=True)
+            finally:
+                if self.websocket.client_state == 1:
+                    await self.websocket.close()
+        """
+        
+        try:
+            while True:
+                try:
+                    #grab data, convert to json, print to confirm
+                    data = await self.websocket.receive_text()
+                    print(f"Received raw data: {data}", flush=True)
+                    if data.lower() == "pong": # Heartbeat technique, pong just keeps the socket alive
+                        print("Pong received", flush=True)
+                        continue
+    
+                    # Generate response
+                    response_text = await wav_generation_test_response(data) # Generate the response from LLM
+                    print(f"Generated response: {response_text}", flush=True)
+                    
 
-async def audio(websocket: WebSocket):
-    pass
+                    # Convert generated response to .wav and then to raw PCM data
+                    await generate_speech(response_text)
+                    params, frames = wav_to_bytes("TTS/playhtTest.wav")
 
-async def visual(websocket: WebSocket):
-    pass
+                    if params and frames:
+                        # Convert headers to JSON format
+                        metadata = {
+                            "nchannels": params.nchannels,
+                            "sampwidth": params.sampwidth,
+                            "framerate": params.framerate,
+                            "nframes": params.nframes
+                        }
 
-async def physical(websocket: WebSocket):
-    pass
+                        await self.websocket.send_text(json.dumps(metadata)) # Send headers
 
-async def test_custom_receiver(websocket: WebSocket):
-    print("Test Custom Receiver Triggered", flush=True)
-    pass
+                        chunk_size = 4096 # Must chunk audio frames to reduce size of message
+                        for i in range(0, len(frames), chunk_size):
+                            await self.websocket.send_bytes(frames[i:i+chunk_size])
+
+                        await self.websocket.send_text("END") # Indicate end of transmission
+
+                except asyncio.TimeoutError: 
+                    await self.websocket.send_text("Ping") 
+                    print("Ping sent",flush=True)
+                    
+        except Exception as e:
+            if type(e) is not WebSocketDisconnect:
+                print(f"Error in textual endpoint: {e}", flush=True)
+        
+        
+    
+"""Handles audio WebSocket connections"""
+class AudioSocket(BaseSocketHandler):
+    async def handle_message(self):
+        return await super().handle_message()
+    
+"""Handles visual WebSocket connections"""
+class VisualSocket(BaseSocketHandler):
+    async def handle_message(self):
+        return await super().handle_message()
+    
+"""Handles physical WebSocket connections"""
+class PhysicalSocket(BaseSocketHandler):
+    async def handle_message(self):
+        return await super().handle_message()
+
+"""Example of a custom-built socket"""
+class CustomSocket(BaseSocketHandler):
+    async def handle_message(self):
+        return await super().handle_message()
+
 
 # Defines the set of default receivers for each modality
-DEFAULT_RECEIVERS = {
-    "textual": textual,
-    "audio": audio,
-    "visual": visual,
-    "physical": physical
+DEFAULT_HANDLERS = {
+    "textual": TextualSocket,
+    "audio": AudioSocket,
+    "visual": VisualSocket,
+    "physical": PhysicalSocket
 }
 # Defines the set of custom receivers mapping to SOCKETS['receiver']
-CUSTOM_RECEIVERS = {
-    "audio": test_custom_receiver,
-    "physical": test_custom_receiver
+CUSTOM_HANDLERS = {
+    "audio": CustomSocket,
+    "physical": CustomSocket
 }
 
 # Initializes the sockets listed in SOCKETS, sets their handler
@@ -150,35 +211,23 @@ def initialize_sockets():
 
         # Check for custom receiver defined
         # If not, use default modality receiver
-        handler_func = CUSTOM_RECEIVERS.get(socket.get("receiver"), DEFAULT_RECEIVERS[modality])
+        handler_class = CUSTOM_HANDLERS.get(socket.get("handler"), DEFAULT_HANDLERS[modality])
         
         # Register route
-        app.add_api_websocket_route(f"/ws/{input_name}", handler_func)
+        async def websocket_handler(websocket: WebSocket, handler_class=handler_class):
+            handler = handler_class(websocket, input_name, modality)
+            await handler.handle_message()
+
+        app.add_api_websocket_route(f"/ws/{input_name}", websocket_handler)
         print(f"Endpoint registered: {input_name}", flush=True)
 
 
 initialize_sockets()
 
-# Pings startup endpoint to preload LLM
-async def notify_startup():
-    await asyncio.sleep(2)
-    async with httpx.AsyncClient() as client:
-        try:
-            await client.get("http://localhost:5000/startup")
-            print("Ollama preloaded", flush=True)
-            
-        except httpx.ConnectError:
-            print("Failed to reach startup endpoint.", flush=True)
 
-# Specifies events to take place at app startup and shutdown
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    #asyncio.create_task(notify_startup())
-    yield # Events after yield occur at shutdown
-    print("Shutting down...", flush=True)
 
-app.router.lifespan_context = lifespan
 
+"""
 # Processes metadata received to route data to correct handler, along with
 # utilizing correct method to receive data (i.e. whether data is chunked or not)
 async def handle_metadata(metadata: dict, websocket: WebSocket):
@@ -208,9 +257,4 @@ async def handle_metadata(metadata: dict, websocket: WebSocket):
 
     # Call previously assigned handler with the given data
     handler(data)
-
-# Startup endpoint to handle Ollama initialization
-@app.get("/startup")
-async def startup():
-    await preload_llm()
-    return "Ollama preloading..."
+"""

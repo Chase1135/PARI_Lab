@@ -2,7 +2,7 @@
     "model": "llama3.2",
     "options": {
       "temperature": 0,
-      "max_tokens": 100,
+      "num_predict": 400,
       "top_p": 0.9
     },
     "messages": [

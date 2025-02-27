@@ -1,6 +1,7 @@
 import ollama
 import json
-import asyncio
+from processors import DATA_BUFFERS
+from utils import Benchmark
 
 # Load model parameters from JSON file
 with open("LLM/model_params.json", "r") as model_params:
@@ -8,14 +9,9 @@ with open("LLM/model_params.json", "r") as model_params:
 
 MAX_HISTORY_LENGTH = 10
 
-DATA_BUFFERS = {
-    "textual": [],
-    "audio": [],
-    "visual": [],
-    "physical": []
-}
 conversation_history = []
 
+@Benchmark.time_execution
 async def generate_response(**kwargs):
     print(f"Data buffer before response generation: {DATA_BUFFERS}", flush=True)
 
@@ -35,8 +31,8 @@ async def generate_response(**kwargs):
     # Generate response
     response = ollama.chat(
         model='llama3.2',
-        messages = messages,
-        **config["options"]
+        messages=messages,
+        options=config["options"]
     )
 
     # Add the model's response to the conversation history
@@ -52,7 +48,7 @@ async def generate_response(**kwargs):
 
     return response['message']['content']
 
-
+@Benchmark.time_execution
 async def wav_generation_test_response(data):
     messages = [
         {'role': 'system', 'content': "You are an AI-powered research assistant. \
