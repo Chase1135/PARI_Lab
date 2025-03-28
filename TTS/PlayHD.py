@@ -19,8 +19,8 @@ async def generate_speech(text):
     api_key="71f90348232d48c79f4ea79ed3fe4a3d"
     """
     client = AsyncClient(
-        user_id="uXE8bhiuwZTRpIpPr8rGuTdu4mJ3",
-        api_key="71f90348232d48c79f4ea79ed3fe4a3d"
+        user_id="iEwn6pNjtRQZ7HJih01l339RI102",
+        api_key="86a6bbf9121049cea7ecf47d9774bccf"
     )
 
     # Open a file to save the audio
