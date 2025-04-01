@@ -8,6 +8,8 @@ from utils import Benchmark
 
 app = FastAPI()
 
+audio_queue = asyncio.Queue() # Queue to hold audio frames waiting to be sent
+
 """List of sockets to be opened within a given run"""
 SOCKETS = [
     {"name": "textual", "modality": "textual"},
@@ -151,13 +153,7 @@ class TextualSocket(BaseSocketHandler):
                             "nframes": params.nframes
                         }
 
-                        await self.websocket.send_text(json.dumps(metadata)) # Send headers
-
-                        chunk_size = 4096 # Must chunk audio frames to reduce size of message
-                        for i in range(0, len(frames), chunk_size):
-                            await self.websocket.send_bytes(frames[i:i+chunk_size])
-
-                        await self.websocket.send_text("END") # Indicate end of transmission
+                        await audio_queue.put(frames) # Append audio frames to queue
 
                 except asyncio.TimeoutError: 
                     await self.websocket.send_text("Ping") 
@@ -172,7 +168,65 @@ class TextualSocket(BaseSocketHandler):
 """Handles audio WebSocket connections"""
 class AudioSocket(BaseSocketHandler):
     async def handle_message(self):
-        return await super().handle_message()
+        await self.accept_connection()
+
+        # Start both tasks concurrently
+        receive_task = asyncio.create_task(self.receive_audio())
+        send_task = asyncio.create_task(self.send_audio())
+
+        # Run both tasks
+        await asyncio.gather(receive_task, send_task)
+
+    async def receive_audio(self):
+        """Listens for incoming audio data from the client and processes it."""
+        try:
+            while True:
+                audio_data = await self.websocket.receive_bytes()
+            """
+                print(f"Received audio data: {len(audio_data)} bytes")
+
+                # Process speech-to-text
+                text_output = await speech_to_text(audio_data)
+                print(f"Converted Speech-to-Text: {text_output}")
+
+                # Send converted text to LLM
+                response_text = await wav_generation_test_response(text_output)
+                print(f"Generated response: {response_text}")
+
+                # Convert response to speech and store in queue
+                await generate_speech(response_text)
+                params, frames = wav_to_bytes("TTS/playhtTest.wav")
+
+                if params and frames:
+                    metadata = {
+                        "nchannels": params.nchannels,
+                        "sampwidth": params.sampwidth,
+                        "framerate": params.framerate,
+                        "nframes": params.nframes
+                    }
+
+                    await audio_queue.put(frames)
+            """
+
+        except Exception as e:
+            if type(e) is not WebSocketDisconnect:
+                print(f"Error receiving audio: {e}", flush=True)
+
+    async def send_audio(self):
+        """Waits for generated speech data and sends it to the client."""
+        try:
+            while True:
+                frames = await audio_queue.get()  # Wait for speech data
+
+                for i in range(0, len(frames), CHUNK_SIZE):
+                    await self.websocket.send_bytes(frames[i:i+CHUNK_SIZE])
+
+                await self.websocket.send_text("END")  # Indicate end of transmission
+
+        except Exception as e:
+            if type(e) is not WebSocketDisconnect:
+                print(f"Error sending audio: {e}", flush=True)
+
     
 """Handles visual WebSocket connections"""
 class VisualSocket(BaseSocketHandler):
@@ -223,38 +277,3 @@ def initialize_sockets():
 
 
 initialize_sockets()
-
-
-
-
-"""
-# Processes metadata received to route data to correct handler, along with
-# utilizing correct method to receive data (i.e. whether data is chunked or not)
-async def handle_metadata(metadata: dict, websocket: WebSocket):
-    name = metadata.get("name")
-    modality = metadata.get("modality")
-    chunked = metadata.get("chunked", False)
-
-    # Check if there is a specific handler for the given metadata
-    # If not, assign to default handler for associated modality
-    if 'handler' not in metadata:
-        handler = DEFAULT_HANDLERS[modality]
-    else:
-        handler = DEFAULT_INPUTS['handler']
-
-    # If data is chunked, gather into a buffer
-    # Otherwise, just receive the data
-    if chunked:
-        data = b""
-        while True:
-            chunk = await websocket.receive_bytes()
-            if chunk == "END":
-                break
-
-            data += chunk
-    else:
-        data = await websocket.receive_text()
-
-    # Call previously assigned handler with the given data
-    handler(data)
-"""
