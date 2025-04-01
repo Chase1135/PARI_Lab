@@ -2,27 +2,29 @@ from pyht import AsyncClient
 from pyht import TTSOptions
 import asyncio
 import wave
-from utils import Benchmark
 
-# Jennifer - s3://voice-cloning-zero-shot/775ae416-49bb-4fb6-bd45-740f205d20a1/jennifersaad/manifest.json
+# Jennifer - options = TTSOptions(voice=s3://voice-cloning-zero-shot/775ae416-49bb-4fb6-bd45-740f205d20a1/jennifersaad/manifest.json)
 # Saul (William) - s3://mockingbird-prod/william_3_d2b62fd7-a52d-4bd1-a09a-fb2748eda979/voices/william_3/manifest.json
 # Select voice option for generation
 # Saul -
 options = TTSOptions(voice="s3://mockingbird-prod/william_3_d2b62fd7-a52d-4bd1-a09a-fb2748eda979/voices/william_3/manifest.json")
 
 # Take input text and generate speech in the form of a .wav file
-@Benchmark.time_execution
 async def generate_speech(text):
     """
-    Chase ID and API Key
+    Chase UserID and API Key (Free Trial)
     user_id="uXE8bhiuwZTRpIpPr8rGuTdu4mJ3"
     api_key="71f90348232d48c79f4ea79ed3fe4a3d"
+
+    Will UserID and API Key (First Tier Sub) **Only use for demonstrations purposes** 
+    user_id=iEwn6pNjtRQZ7HJih01l339RI102
+    api_key=86a6bbf9121049cea7ecf47d9774bccf
     """
     client = AsyncClient(
-        user_id="uXE8bhiuwZTRpIpPr8rGuTdu4mJ3",
-        api_key="71f90348232d48c79f4ea79ed3fe4a3d"
+        user_id="iEwn6pNjtRQZ7HJih01l339RI102",
+        api_key="86a6bbf9121049cea7ecf47d9774bccf"
     )
-
+    
     # Open a file to save the audio
     try:
         with wave.open("TTS/playhtTest.wav", "wb") as wf:
@@ -75,10 +77,12 @@ def bytes_to_wav(params, frames, file_path):
 
 
 if __name__ == "__main__":
-    asyncio.run(generate_speech("Sometimes it works, sometimes it doesn't."))
-
+    #asyncio.run(generate_speech("Sometimes it works, sometimes it doesn't."))
+    asyncio.run(generate_speech("Let me think about that for a moment"))
+    """
     params, frames = wav_to_bytes("Text-to-Speech/playhtTest.wav")
     if frames:
         print(f"Successfully read {len(frames)} bytes")
 
     bytes_to_wav(params, frames, "Text-to-Speech/bytes-to-wav-test.wav")
+    """
