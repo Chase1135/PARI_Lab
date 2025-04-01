@@ -61,7 +61,7 @@ class BaseSocketHandler(ABC):
         while True:
             try:
                 await self.websocket.send_text("Ping")
-                print("Ping sent", flush=True)
+                print(f"{self.__class__.__name__} Ping sent", flush=True)
                 await asyncio.sleep(interval)
             except WebSocketDisconnect:
                 break
@@ -253,8 +253,7 @@ DEFAULT_HANDLERS = {
 }
 # Defines the set of custom receivers mapping to SOCKETS['receiver']
 CUSTOM_HANDLERS = {
-    "audio": CustomSocket,
-    "physical": CustomSocket
+
 }
 
 # Initializes the sockets listed in SOCKETS, sets their handler
