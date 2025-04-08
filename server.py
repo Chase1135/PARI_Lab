@@ -153,6 +153,7 @@ class TextualSocket(BaseSocketHandler):
                             "nframes": params.nframes
                         }
 
+                        print(f"Queueing {len(frames)} bytes of data to audio queue", flush=True)
                         await audio_queue.put(frames) # Append audio frames to queue
 
                 except asyncio.TimeoutError: 
@@ -236,11 +237,15 @@ class AudioSocket(BaseSocketHandler):
         """Waits for generated speech data and sends it to the client."""
         try:
             while True:
+                print("[AudioSocket] Waiting for audio data...", flush=True)
                 frames = await audio_queue.get()  # Wait for speech data
+                print(f"[AudioSocket] Got audio frames: {len(frames)} bytes")
 
                 for i in range(0, len(frames), CHUNK_SIZE):
+                    print(f"[AudioSocket] Sending chunk: {len(frames[i:i+CHUNK_SIZE])}", flush=True)
                     await self.websocket.send_bytes(frames[i:i+CHUNK_SIZE])
 
+                print("[AudioSocket] Sending END")
                 await self.websocket.send_text("END")  # Indicate end of transmission
 
         except Exception as e:
