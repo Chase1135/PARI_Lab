@@ -31,7 +31,6 @@ async def textual_socket():
 
                 if message.lower() == "ping":
                     await websocket.send("pong")
-                    print("Pong sent (Textual)", flush=True)
                     continue  # Ignore pings
 
                 print(f"Server response (Textual): {message}")
@@ -49,7 +48,6 @@ async def audio_socket(nchannels, sampwidth, framerate):
 
                 if message.lower() == "ping":
                     await websocket.send("pong")
-                    print("Pong sent (Audio)", flush=True)
                     continue  # Ignore pings
 
                 audio_data = b""  # Buffer to store received audio frames

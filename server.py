@@ -181,7 +181,27 @@ class AudioSocket(BaseSocketHandler):
         """Listens for incoming audio data from the client and processes it."""
         try:
             while True:
-                audio_data = await self.websocket.receive_bytes()
+                data = await self.websocket.receive()
+
+                print(f"Received raw data: {data} (Type: {type(data)})")
+
+                if isinstance(data, dict):
+                    if "text" in data:
+                        text_data = data['text']
+                        if text_data == "pong":
+                            continue
+
+                elif isinstance(data, bytes):
+                    print(f"Received audio data: {len(data)} bytes")
+
+                elif isinstance(data, str):
+                    print(f"Received text message: {data}")
+                    if data == "pong":
+                        continue
+
+                else:
+                    print(f"Unknown message type received: {type(data)}", flush=True)
+
             """
                 print(f"Received audio data: {len(audio_data)} bytes")
 
