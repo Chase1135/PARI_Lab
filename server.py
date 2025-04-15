@@ -1,7 +1,11 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, APIRouter, Request, Response
+from fastapi.responses import StreamingResponse
 import json, asyncio
-from LLM.response_generator import generate_response, wav_generation_test_response
+import base64
+from pydantic import BaseModel
+from LLM.response_generator import wav_generation_test_response
 from processors import DEFAULT_PROCESSORS, CUSTOM_PROCESSORS
+from buffers import OUTBOUND_BUFFERS
 from TTS.PlayHD import generate_speech, wav_to_bytes
 from abc import ABC, abstractmethod
 from utils import Benchmark
@@ -25,15 +29,30 @@ NCHANNELS = 1 # Number of channels (i.e. Monoaudio)
 SAMPWIDTH = 2 # Number of bytes per sample
 FRAMERATE = 48000 # Rate of play
 
+"""Post Intervals"""
+VISUAL_INTERVAL = 3
+PHYSICAL_INTERVAL = 3
+
 """Config endpoint to transmit necessary parameters to Unreal Engine"""
 @app.get("/config")
 async def get_config():
     # Grab the name of each endpoint
     open_sockets = [socket["name"] for socket in SOCKETS]
+    open_endpoints = [endpoint["name"] for endpoint in ENDPOINTS]
+    post_intervals = {
+        "visual": VISUAL_INTERVAL,
+        "physical": PHYSICAL_INTERVAL
+    }
+    get_modalities = [
+        "audio",
+        "physical"
+    ]
 
     # Parameters that Unreal Engine needsa
     CONFIG_DATA = {
-        "open_sockets": open_sockets,
+        "open_endpoints": open_endpoints,
+        "post_intervals": post_intervals,
+        "get_modalities": get_modalities,
         "nchannels": NCHANNELS,
         "sampwidth": SAMPWIDTH,
         "framerate": FRAMERATE
@@ -141,20 +160,11 @@ class TextualSocket(BaseSocketHandler):
                     
 
                     # Convert generated response to .wav and then to raw PCM data
-                    await generate_speech(response_text)
-                    params, frames = wav_to_bytes("TTS/playhtTest.wav")
+                    frames = await generate_speech(response_text)
 
-                    if params and frames:
-                        # Convert headers to JSON format
-                        metadata = {
-                            "nchannels": params.nchannels,
-                            "sampwidth": params.sampwidth,
-                            "framerate": params.framerate,
-                            "nframes": params.nframes
-                        }
 
-                        print(f"Queueing {len(frames)} bytes of data to audio queue", flush=True)
-                        await audio_queue.put(frames) # Append audio frames to queue
+                    print(f"Queueing {len(frames)} bytes of data to audio queue", flush=True)
+                    await audio_queue.put(frames) # Append audio frames to queue
 
                 except asyncio.TimeoutError: 
                     await self.websocket.send_text("Ping") 
@@ -269,6 +279,7 @@ class CustomSocket(BaseSocketHandler):
         return await super().handle_message()
 
 
+"""
 # Defines the set of default receivers for each modality
 DEFAULT_HANDLERS = {
     "textual": TextualSocket,
@@ -281,6 +292,7 @@ CUSTOM_HANDLERS = {
 
 }
 
+"""
 # Initializes the sockets listed in SOCKETS, sets their handler
 def initialize_sockets():
     for socket in SOCKETS:
@@ -300,4 +312,117 @@ def initialize_sockets():
         print(f"Endpoint registered: {input_name}", flush=True)
 
 
-initialize_sockets()
+# initialize_sockets()
+
+ENDPOINTS = [
+    {"name": "textual", "modality": "textual"},
+    {"name": "audio", "modality": "audio"},
+    {"name": "visual", "modality": "visual"},
+    {"name": "physical", "modality": "physical"},
+    {"name": "custom", "modality": "textual", "handler": "custom"}
+]
+
+class TextPayload(BaseModel):
+    data: str
+
+class BaseRESTHandler(ABC):
+    def __init__(self, name: str, modality: str):
+        self.name = name
+        self.modality = modality
+        self.router = APIRouter()
+        self.processor = CUSTOM_PROCESSORS.get(name, DEFAULT_PROCESSORS[modality])
+        self.register_routes()
+
+    @abstractmethod
+    def register_routes(self):
+        pass
+
+    async def process(self, data):
+        await self.processor.process(data)
+
+class TextualRESTHandler(BaseRESTHandler):
+    def register_routes(self):
+        @self.router.post(f"/{self.name}")
+        async def receive_data(payload: TextPayload):
+            print(f"[{self.name}] Received payload: {payload}")
+            asyncio.create_task(self.process(payload.data))
+            return {"status": "received"}
+
+        @self.router.get(f"/{self.name}")
+        async def get_response():
+            return Response(content=b"", status_code=204)
+
+class AudioRESTHandler(BaseRESTHandler):
+    def audio_streamer(self):
+        if OUTBOUND_BUFFERS["audio"]:
+            raw_audio = OUTBOUND_BUFFERS["audio"].pop(0)
+            for i in range(0, len(raw_audio), CHUNK_SIZE):
+                yield raw_audio[i:i+CHUNK_SIZE]
+
+    def register_routes(self):
+        @self.router.post(f"/{self.name}")
+        async def receive_data(payload: Request):
+            raw_audio = await payload.body()
+            print(f"[{self.name}] Received audio data of length: {len(raw_audio)} bytes")
+
+            asyncio.create_task(self.process(raw_audio))
+            return {"status": "received", "length": len(raw_audio)} 
+
+        @self.router.get(f"/{self.name}")
+        async def get_response():
+            if OUTBOUND_BUFFERS["audio"]:
+                return StreamingResponse(
+                    content=self.audio_streamer(),
+                    media_type="application/octet-stream" # raw binary stream
+                )
+            
+            return Response(content=b"", status_code=204)
+
+class VisualRESTHandler(BaseRESTHandler):
+    def register_routes(self):
+        @self.router.post(f"/{self.name}")
+        async def receive_data(payload: Request):
+            raw_image = await payload.body()
+            print(f"[{self.name}] Received visual data: {len(raw_image)} bytes")
+
+            asyncio.create_task(self.process(raw_image))
+            return {"status": "received", "size": len(raw_image)}
+
+        @self.router.get(f"/{self.name}")
+        async def get_response():
+            return Response(content=b"", status_code=204)
+
+class PhysicalRESTHandler(BaseRESTHandler):
+    def register_routes(self):
+        @self.router.post(f"/{self.name}")
+        async def receive_data(payload: dict):
+            print(f"[{self.name}] Received payload: {payload}")
+            asyncio.create_task(self.process(payload))
+            return {"status": "received"}   
+
+        @self.router.get(f"/{self.name}")
+        async def get_response():
+            return Response(content=b"", status_code=204)
+
+# Defines the set of default receivers for each modality
+DEFAULT_HANDLERS = {
+    "textual": TextualRESTHandler,
+    "audio": AudioRESTHandler,
+    "visual": VisualRESTHandler,
+    "physical": PhysicalRESTHandler
+}
+# Defines the set of custom receivers mapping to SOCKETS['receiver']
+CUSTOM_HANDLERS = {
+    "custom": TextualRESTHandler
+}
+
+def initialize_endpoints():
+    for config in ENDPOINTS:
+        name = config["name"]
+        modality = config["modality"]
+        handler_class = CUSTOM_HANDLERS.get(config.get("handler"), DEFAULT_HANDLERS[modality])
+        handler = handler_class(name=name, modality=modality)
+        app.include_router(handler.router)
+        print(f"Registered REST Endpoint: /{name} (modality: {modality}) (handler: {handler.__class__.__name__})", flush=True)
+
+initialize_endpoints()

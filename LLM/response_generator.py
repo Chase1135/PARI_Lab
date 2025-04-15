@@ -1,6 +1,6 @@
 import ollama
 import json
-from processors import DATA_BUFFERS
+from buffers import INBOUND_BUFFERS
 from utils import Benchmark
 
 # Load model parameters from JSON file
@@ -13,10 +13,10 @@ conversation_history = []
 
 @Benchmark.time_execution
 async def generate_response(**kwargs):
-    print(f"Data buffer before response generation: {DATA_BUFFERS}", flush=True)
+    print(f"Data buffer before response generation: {INBOUND_BUFFERS}", flush=True)
 
     # Append current message to history
-    conversation_history.append({'role': 'user', 'content': ''.join(DATA_BUFFERS['textual'])})
+    conversation_history.append({'role': 'user', 'content': ''.join(INBOUND_BUFFERS['textual'])})
 
     # System prompt sent at start of conversation as a way to specify how the agent should respond
     system_message = config["messages"][0]["content"].format(**kwargs)
@@ -42,8 +42,8 @@ async def generate_response(**kwargs):
         conversation_history.pop(0)
 
     # Clear data buffers
-    DATA_BUFFERS['textual'].clear()
-    print(f"Data buffer after response generation: {DATA_BUFFERS}", flush=True)
+    INBOUND_BUFFERS['textual'].clear()
+    print(f"Data buffer after response generation: {INBOUND_BUFFERS}", flush=True)
     print(f"Conversation history: {conversation_history}", flush=True)
 
     return response['message']['content']
