@@ -23,7 +23,7 @@ class BaseProcessor(ABC):
 class TextualProcessor(BaseProcessor):
     @Benchmark.time_execution
     async def process(self, data):
-        print(f"Processing textual data: {data}")
+        print(f"Processing textual data: {data}", flush=True)
         INBOUND_BUFFERS["textual"].append(data)
 
         asyncio.create_task(self.process_pipeline())
@@ -32,21 +32,21 @@ class TextualProcessor(BaseProcessor):
 class AudioProcessor(BaseProcessor):
     @Benchmark.time_execution
     async def process(self, data):
-        print(f"Processing audio data: {data}")
+        print(f"Processing audio data: {data}", flush=True)
         INBOUND_BUFFERS["audio"].append(data)
 
 """Default visual modality processor"""
 class VisualProcessor(BaseProcessor):
     @Benchmark.time_execution
     async def process(self, data):
-        print(f"Processing visual data: {data}")
+        print(f"Processing visual data: {len(data)}", flush=True)
         INBOUND_BUFFERS["visual"].append(data)
 
 """Default physical modality processor"""
 class PhysicalProcessor(BaseProcessor):
     @Benchmark.time_execution
     async def process(self, data):
-        print(f"Processing physical data: {data}")
+        print(f"Processing physical data: {data}", flush=True)
         INBOUND_BUFFERS["physical"].append(data)
 
 """Example of a custom-built socket"""

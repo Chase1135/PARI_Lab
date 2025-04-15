@@ -344,7 +344,7 @@ class TextualRESTHandler(BaseRESTHandler):
     def register_routes(self):
         @self.router.post(f"/{self.name}")
         async def receive_data(payload: TextPayload):
-            print(f"[{self.name}] Received payload: {payload}")
+            print(f"[{self.name}] Received payload: {payload}", flush=True)
             asyncio.create_task(self.process(payload.data))
             return {"status": "received"}
 
@@ -363,7 +363,7 @@ class AudioRESTHandler(BaseRESTHandler):
         @self.router.post(f"/{self.name}")
         async def receive_data(payload: Request):
             raw_audio = await payload.body()
-            print(f"[{self.name}] Received audio data of length: {len(raw_audio)} bytes")
+            print(f"[{self.name}] Received audio data of length: {len(raw_audio)} bytes", flush=True)
 
             asyncio.create_task(self.process(raw_audio))
             return {"status": "received", "length": len(raw_audio)} 
@@ -396,7 +396,7 @@ class PhysicalRESTHandler(BaseRESTHandler):
     def register_routes(self):
         @self.router.post(f"/{self.name}")
         async def receive_data(payload: dict):
-            print(f"[{self.name}] Received payload: {payload}")
+            print(f"[{self.name}] Received payload: {payload}", flush=True)
             asyncio.create_task(self.process(payload))
             return {"status": "received"}   
 
