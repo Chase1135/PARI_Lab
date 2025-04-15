@@ -356,6 +356,9 @@ class AudioRESTHandler(BaseRESTHandler):
     def audio_streamer(self):
         if OUTBOUND_BUFFERS["audio"]:
             raw_audio = OUTBOUND_BUFFERS["audio"].pop(0)
+
+            print(f"Sending audio of length: {raw_audio} bytes")
+
             for i in range(0, len(raw_audio), CHUNK_SIZE):
                 yield raw_audio[i:i+CHUNK_SIZE]
 
@@ -371,12 +374,11 @@ class AudioRESTHandler(BaseRESTHandler):
         @self.router.get(f"/{self.name}")
         async def get_response():
             if OUTBOUND_BUFFERS["audio"]:
-                return StreamingResponse(
-                    content=self.audio_streamer(),
-                    media_type="application/octet-stream" # raw binary stream
-                )
+                raw_audio = OUTBOUND_BUFFERS["audio"].pop(0)
+                print(f"Sending full audio of length: {len(raw_audio)} bytes")
+                return Response(content=raw_audio, media_type="application/octet-stream")
             
-            return Response(content=b"", status_code=204)
+            return Response(status_code=204)
 
 class VisualRESTHandler(BaseRESTHandler):
     def register_routes(self):
