@@ -59,26 +59,7 @@ def wav_to_bytes(file_path):
     
     return None, None
 
-# Converts bytes given to a .wav file, mainly for testing
-def bytes_to_wav(params, frames, file_path):
-    try:
-        with wave.open(file_path, 'wb') as wf:
-            wf.setparams(params)
-            wf.writeframes(frames)
-
-        print(f"Successfully wrote audio to {file_path}")
-    
-    except wave.Error as e:
-        print(f"Error writing WAV file: {e}")
-
 
 if __name__ == "__main__":
     #asyncio.run(generate_speech("Sometimes it works, sometimes it doesn't."))
     asyncio.run(generate_speech("Let me think about that for a moment"))
-    """
-    params, frames = wav_to_bytes("Text-to-Speech/playhtTest.wav")
-    if frames:
-        print(f"Successfully read {len(frames)} bytes")
-
-    bytes_to_wav(params, frames, "Text-to-Speech/bytes-to-wav-test.wav")
-    """

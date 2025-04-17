@@ -3,6 +3,7 @@ from utils import Benchmark
 import asyncio
 from LLM.response_generator import generate_response
 from TTS.PlayHD import generate_speech
+from STT.SpeechFlow import convert_speech_to_text
 from buffers import INBOUND_BUFFERS, OUTBOUND_BUFFERS
 
 """Base class for all processors"""
@@ -26,7 +27,7 @@ class TextualProcessor(BaseProcessor):
         print(f"Processing textual data: {data}", flush=True)
         INBOUND_BUFFERS["textual"].append(data)
 
-        asyncio.create_task(self.process_pipeline())
+        await self.process_pipeline()
 
 """Default audio modality processor"""
 class AudioProcessor(BaseProcessor):
@@ -34,6 +35,12 @@ class AudioProcessor(BaseProcessor):
     async def process(self, data):
         print(f"Processing audio data: {len(data)} bytes", flush=True)
         INBOUND_BUFFERS["audio"].append(data)
+
+    
+        converted_speech = await convert_speech_to_text()
+        INBOUND_BUFFERS["textual"].append(converted_speech)
+
+        await self.process_pipeline()
 
 """Default visual modality processor"""
 class VisualProcessor(BaseProcessor):

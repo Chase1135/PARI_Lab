@@ -13,8 +13,6 @@ conversation_history = []
 
 @Benchmark.time_execution
 async def generate_response(**kwargs):
-    print(f"Data buffer before response generation: {INBOUND_BUFFERS}", flush=True)
-
     # Append current message to history
     conversation_history.append({'role': 'user', 'content': ''.join(INBOUND_BUFFERS['textual'])})
 
@@ -43,7 +41,6 @@ async def generate_response(**kwargs):
 
     # Clear data buffers
     INBOUND_BUFFERS['textual'].clear()
-    print(f"Data buffer after response generation: {INBOUND_BUFFERS}", flush=True)
     print(f"Conversation history: {conversation_history}", flush=True)
 
     return response['message']['content']

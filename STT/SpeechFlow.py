@@ -1,86 +1,109 @@
-import requests
-import time
+import os
+import wave
+import asyncio
+import httpx  # pip install httpx
+from buffers import INBOUND_BUFFERS
 
-# Generated API KEY
 API_KEY_ID = "s1XyepwyxRdijzuf"
 API_KEY_SECRET = "3ht6liNE015yjdiZ"
-
-# Language of speech file
 LANG = "en"
-
-# The local or remote path of media file.
-FILE_PATH = "../harvard.wav"
-# FILE_PATH = "https://sf-docs-prod.s3.us-west-1.amazonaws.com/web/sample-audios/EN.wav"
-
-# The translation result type.
-# 1, the default result type, the json format for sentences and words with begin time and end time.
-# 2, the json format for the generated subtitles with begin time and end time.
-# 3, the srt format for the generated subtitles with begin time and end time.
-# 4, the plain text format for transcription results without begin time and end time.
-RESULT_TYPE = 1
+FILE_PATH = "STT/user_speech.wav"
+RESULT_TYPE = 4
 
 headers = {"keyId": API_KEY_ID, "keySecret": API_KEY_SECRET}
 
 
-def create():
-    create_data = {
-        "lang": LANG,
-    }
-    files = {}
+def write_wav_from_frames(frames: bytes, path: str, sample_rate=48000, channels=1, sample_width=2):
+    with wave.open(path, 'wb') as wf:
+        wf.setnchannels(channels)
+        wf.setsampwidth(sample_width)
+        wf.setframerate(sample_rate)
+        wf.writeframes(frames)
+
+    print(f"Audio frames transcribed to .wav at: {path}", flush=True)
+
+
+async def create():
     create_url = "https://api.speechflow.io/asr/file/v1/create"
-    if FILE_PATH.startswith('http'):
-        create_data['remotePath'] = FILE_PATH
-        print('submitting a remote file')
-        response = requests.post(create_url, data=create_data, headers=headers)
-    else:
-        print('submitting a local file')
-        create_url += "?lang=" + LANG
-        files['file'] = open(FILE_PATH, "rb")
-        response = requests.post(create_url, headers=headers, files=files)
+    create_data = {"lang": LANG}
+    files = {}
+
+    abs_path = os.path.abspath(FILE_PATH)
+
+    if not os.path.exists(abs_path):
+        print(f"[ERROR] File not found: {abs_path}", flush=True)
+        return ""
+
+    print(f"[INFO] Submitting local file: {abs_path}", flush=True)
+    create_url += f"?lang={LANG}"
+
+    async with httpx.AsyncClient() as client:
+        with open(abs_path, "rb") as audio_file:
+            files = {"file": (os.path.basename(abs_path), audio_file, "audio/wav")}
+            response = await client.post(create_url, headers=headers, files=files)
+
     if response.status_code == 200:
-        create_result = response.json()
-        print(create_result)
-        if create_result["code"] == 10000:
-            task_id = create_result["taskId"]
+        result = response.json()
+        if result.get("code") == 10000:
+            task_id = result["taskId"]
+            print(f"[INFO] Task created. ID: {task_id}")
+            return task_id
         else:
-            print("create error:")
-            print(create_result["msg"])
-            task_id = ""
+            print("[ERROR] Create error:", result.get("msg"), flush=True)
     else:
-        print('create request failed: ', response.status_code)
-        task_id = ""
-    return task_id
+        print(f"[ERROR] Create request failed: HTTP {response.status_code}")
+
+    return ""
 
 
-def query(task_id):
-    query_url = "https://api.speechflow.io/asr/file/v1/query?taskId=" + task_id + "&resultType=" + str(RESULT_TYPE)
-    print('querying transcription result')
-    while (True):
-        response = requests.get(query_url, headers=headers)
-        if response.status_code == 200:
-            query_result = response.json()
-            if query_result["code"] == 11000:
-                print('transcription result:')
-                print(query_result)
-                break
-            elif query_result["code"] == 11001:
-                print('waiting')
-                time.sleep(3)
-                continue
+async def query(task_id):
+    query_url = (
+        f"https://api.speechflow.io/asr/file/v1/query?taskId={task_id}&resultType={RESULT_TYPE}"
+    )
+
+    print("[INFO] Querying transcription result...", flush=True)
+
+    async with httpx.AsyncClient() as client:
+        while True:
+            try:
+                response = await client.get(query_url, headers=headers)
+            except Exception as e:
+                print(f"[ERROR] Exception during query: {e}", flush=True)
+                return ""
+
+            if response.status_code == 200:
+                result = response.json()
+                code = result.get("code")
+
+                if code == 11000:
+                    print("[SUCCESS] Transcription complete:", flush=True)
+                    print(result, flush=True)
+                    return result["result"]
+                elif code == 11001:
+                    print("[INFO] Transcription in progress... waiting.", flush=True)
+                    await asyncio.sleep(3)
+                    continue
+                else:
+                    print("[ERROR] Transcription failed:", result.get("msg"), flush=True)
+                    break
             else:
-                print(query_result)
-                print("transcription error:")
-                print(query_result['msg'])
+                print(f"[ERROR] Query failed: HTTP {response.status_code}", flush=True)
                 break
-        else:
-            print('query request failed: ', response.status_code)
+
+    return ""
 
 
-def main():
-    task_id = create()
-    if (task_id != ""):
-        query(task_id)
+async def convert_speech_to_text():
+    audio_bytes = b"".join(INBOUND_BUFFERS["audio"])
+    write_wav_from_frames(audio_bytes, os.path.abspath(FILE_PATH))
+
+    task_id = await create()
+    if task_id:
+        converted_text = await query(task_id)
+        return converted_text
+
+    return ""
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(convert_speech_to_text())
