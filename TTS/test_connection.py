@@ -95,6 +95,23 @@ async def audio_main():
         print("[SUCCESS] .wav reconstructed from server response.")
         break
         
+def inspect_wav(filepath):
+    with wave.open(filepath, 'rb') as wf:
+        channels = wf.getnchannels()
+        sample_width = wf.getsampwidth()
+        framerate = wf.getframerate()
+        num_frames = wf.getnframes()
+        duration = num_frames / framerate
+
+        print(f"File: {filepath}")
+        print(f"Channels: {channels}")
+        print(f"Sample Width (bytes): {sample_width}")
+        print(f"Frame Rate (Hz): {framerate}")
+        print(f"Number of Frames: {num_frames}")
+        print(f"Duration (seconds): {duration:.2f}")
+
+
 
 if __name__ == "__main__":
-    asyncio.run(audio_main())
+    #asyncio.run(audio_main())
+    inspect_wav(os.path.abspath("Test.wav"))

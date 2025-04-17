@@ -36,7 +36,6 @@ class AudioProcessor(BaseProcessor):
         print(f"Processing audio data: {len(data)} bytes", flush=True)
         INBOUND_BUFFERS["audio"].append(data)
 
-    
         converted_speech = await convert_speech_to_text()
         INBOUND_BUFFERS["textual"].append(converted_speech)
 

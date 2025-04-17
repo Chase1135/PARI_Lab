@@ -13,7 +13,7 @@ RESULT_TYPE = 4
 headers = {"keyId": API_KEY_ID, "keySecret": API_KEY_SECRET}
 
 
-def write_wav_from_frames(frames: bytes, path: str, sample_rate=48000, channels=1, sample_width=2):
+def write_wav_from_frames(frames: bytes, path: str, sample_rate=48000, channels=2, sample_width=2):
     with wave.open(path, 'wb') as wf:
         wf.setnchannels(channels)
         wf.setsampwidth(sample_width)
