@@ -32,14 +32,14 @@ class TextualProcessor(BaseProcessor):
 class AudioProcessor(BaseProcessor):
     @Benchmark.time_execution
     async def process(self, data):
-        print(f"Processing audio data: {data}", flush=True)
+        print(f"Processing audio data: {len(data)} bytes", flush=True)
         INBOUND_BUFFERS["audio"].append(data)
 
 """Default visual modality processor"""
 class VisualProcessor(BaseProcessor):
     @Benchmark.time_execution
     async def process(self, data):
-        print(f"Processing visual data: {len(data)}", flush=True)
+        print(f"Processing visual data: {len(data)} bytes", flush=True)
         INBOUND_BUFFERS["visual"].append(data)
 
 """Default physical modality processor"""
