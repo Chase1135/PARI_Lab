@@ -46,7 +46,7 @@ async def main():
 
 
 # Function to send audio data to the server
-def send_audio_data(wav_path="STT/harvard.wav", endpoint="http://localhost:5000/audio"):
+def send_audio_data(wav_path="Test.wav", endpoint="http://localhost:5000/audio"):
     try:
         audio_path = os.path.abspath(wav_path)
         with wave.open(audio_path, "rb") as wf:
@@ -114,4 +114,4 @@ def inspect_wav(filepath):
 
 if __name__ == "__main__":
     #asyncio.run(audio_main())
-    inspect_wav(os.path.abspath("Test.wav"))
+    inspect_wav(os.path.abspath("Test(1).wav"))
