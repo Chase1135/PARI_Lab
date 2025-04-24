@@ -8,14 +8,12 @@ from utils import Benchmark
 
 app = FastAPI()
 
-audio_queue = asyncio.Queue() # Queue to hold audio frames waiting to be sent
-
-"""List of sockets to be opened within a given run"""
-SOCKETS = [
+ENDPOINTS = [
     {"name": "textual", "modality": "textual"},
-    {"name": "audio", "modality": "audio", "handler": "audio"},
+    {"name": "audio", "modality": "audio"},
     {"name": "visual", "modality": "visual"},
-    {"name": "physical", "modality": "physical", "handler": "physical"}
+    {"name": "physical", "modality": "physical"},
+    {"name": "custom", "modality": "textual", "handler": "custom"}
 ]
 
 CHUNK_SIZE = 4096 # Size of chunks to transmit audio frames
@@ -33,7 +31,6 @@ PHYSICAL_INTERVAL = 3
 @app.get("/config")
 async def get_config():
     # Grab the name of each endpoint
-    open_sockets = [socket["name"] for socket in SOCKETS]
     open_endpoints = [endpoint["name"] for endpoint in ENDPOINTS]
     post_intervals = {
         "visual": VISUAL_INTERVAL,
@@ -55,14 +52,6 @@ async def get_config():
     }
         
     return CONFIG_DATA
-
-ENDPOINTS = [
-    {"name": "textual", "modality": "textual"},
-    {"name": "audio", "modality": "audio"},
-    {"name": "visual", "modality": "visual"},
-    {"name": "physical", "modality": "physical"},
-    {"name": "custom", "modality": "textual", "handler": "custom"}
-]
 
 class TextPayload(BaseModel):
     data: str

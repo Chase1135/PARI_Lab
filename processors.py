@@ -6,6 +6,9 @@ from TTS.PlayHD import generate_speech
 from STT.SpeechFlow import convert_speech_to_text
 from buffers import INBOUND_BUFFERS, OUTBOUND_BUFFERS
 
+MAX_VISUAL_HISTORY = 10
+MAX_PHYSICAL_HISTORY = 10
+
 """Base class for all processors"""
 class BaseProcessor(ABC):
     @abstractmethod
@@ -48,12 +51,18 @@ class VisualProcessor(BaseProcessor):
         print(f"Processing visual data: {len(data)} bytes", flush=True)
         INBOUND_BUFFERS["visual"].append(data)
 
+        if len(INBOUND_BUFFERS["visual"]) > MAX_VISUAL_HISTORY:
+            INBOUND_BUFFERS["visual"].pop(0)
+
 """Default physical modality processor"""
 class PhysicalProcessor(BaseProcessor):
     @Benchmark.time_execution
     async def process(self, data):
         print(f"Processing physical data: {data}", flush=True)
         INBOUND_BUFFERS["physical"].append(data)
+
+        if len(INBOUND_BUFFERS["physical"]) > MAX_PHYSICAL_HISTORY:
+            INBOUND_BUFFERS["physical"].pop(0)
 
 """Example of a custom-built socket"""
 class CustomProcessor(BaseProcessor):
