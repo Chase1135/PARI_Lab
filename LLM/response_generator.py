@@ -23,9 +23,9 @@ async def generate_response(**kwargs):
 
     # Generate response
     response = ollama.chat(
-        model='llama3.2',
+        model=config["model"],
         messages=messages,
-        options=config["options"]
+        options=config.get("options", {})
     )
 
     # Clear data buffers
