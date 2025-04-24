@@ -353,15 +353,6 @@ class TextualRESTHandler(BaseRESTHandler):
             return Response(content=b"", status_code=204)
 
 class AudioRESTHandler(BaseRESTHandler):
-    def audio_streamer(self):
-        if OUTBOUND_BUFFERS["audio"]:
-            raw_audio = OUTBOUND_BUFFERS["audio"].pop(0)
-
-            print(f"Sending audio of length: {raw_audio} bytes")
-
-            for i in range(0, len(raw_audio), CHUNK_SIZE):
-                yield raw_audio[i:i+CHUNK_SIZE]
-
     def register_routes(self):
         @self.router.post(f"/{self.name}")
         async def receive_data(payload: Request):

@@ -1,7 +1,7 @@
 import os
 import wave
 import asyncio
-import httpx  # pip install httpx
+import httpx 
 from buffers import INBOUND_BUFFERS
 
 API_KEY_ID = "s1XyepwyxRdijzuf"
