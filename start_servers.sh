@@ -1,4 +1,14 @@
 #!/bin/bash
+set -euo pipefail
+
+# Pull the model from model_params.json
+config_file = "LLM/model_params.json"
+model = $(
+  python3 - <<EOF
+import json
+print(json.load(open("$config_file"))["model"])
+EOF
+)
 
 # Start the Ollama server in the background
 ollama serve &
@@ -6,16 +16,16 @@ ollama serve &
 sleep 3
 
 # Check if the model already exists
-if ! ollama list | grep -q "llama3.2"; then
+if ! ollama list | grep -q "$model"; then
   # Pull the model if it doesn't exist
-  ollama pull llama3.2
+  ollama pull "$model"
 
   if [ $? -ne 0 ]; then
     echo "Error pulling the model"
     exit 1
   fi
 else
-  echo "Model llama3.2 already exists, skipping pull."
+  echo "Model $model already exists, skipping pull."
 fi
 
 # Start servers
