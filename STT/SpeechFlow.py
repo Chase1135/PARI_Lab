@@ -96,6 +96,7 @@ async def query(task_id):
 async def convert_speech_to_text():
     audio_bytes = b"".join(INBOUND_BUFFERS["audio"])
     write_wav_from_frames(audio_bytes, os.path.abspath(FILE_PATH))
+    INBOUND_BUFFERS["audio"].clear()
 
     task_id = await create()
     if task_id:
