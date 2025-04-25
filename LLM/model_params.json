@@ -2,7 +2,10 @@
     "model": "gemma3:4b",
     "options": {
       "temperature": 0,
-      "num_predict": 200
+      "num_predict": 200, 
+      "top_k": 1,
+      "top_p": 1.0,
+      "repeat_penalty": 1.0
     },
     "messages": [
       {

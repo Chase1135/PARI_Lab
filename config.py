@@ -5,7 +5,8 @@ ENDPOINTS = [
     {"name": "audio", "modality": "audio"},
     {"name": "visual", "modality": "visual"},
     {"name": "physical", "modality": "physical"},
-    {"name": "custom", "modality": "textual", "handler": "custom"}
+    {"name": "custom", "modality": "textual", "handler": "custom"},
+    {"name": "lefteye", "modality": "visual"}
 ]
 
 # Modalities to Trigger GET requests to

@@ -7,8 +7,8 @@ MONGO_URI = "mongodb+srv://wvf5102:EyoExhSi2mOrwDqy@cluster0.hgnhzej.mongodb.net
 def get_next_run_id(collection):
     last_run = collection.find_one(sort=[("RUN_ID", DESCENDING)])
 
-    if last_run and "run_id" in last_run:
-        return int(last_run["run_id"]) + 1
+    if last_run and "RUN_ID" in last_run:
+        return int(last_run["RUN_ID"]) + 1
     
     return 1
 

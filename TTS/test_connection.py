@@ -87,7 +87,7 @@ async def audio_main():
 
         # Save retrieved audio
         with wave.open("TTS/wav_reconstructed_from_harvard.wav", "wb") as wf:
-            wf.setnchannels(nchannels)
+            wf.setnchannels(1)
             wf.setsampwidth(sampwidth)
             wf.setframerate(framerate)
             wf.writeframes(data_raw.content)
@@ -113,5 +113,5 @@ def inspect_wav(filepath):
 
 
 if __name__ == "__main__":
-    #asyncio.run(audio_main())
-    inspect_wav(os.path.abspath("Test.wav"))
+    asyncio.run(audio_main())
+    #inspect_wav(os.path.abspath("TTS/wav_reconstructed_from_harvard.wav"))

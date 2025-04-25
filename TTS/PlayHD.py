@@ -13,8 +13,8 @@ import wave
     user_id=iEwn6pNjtRQZ7HJih01l339RI102
     api_key=86a6bbf9121049cea7ecf47d9774bccf
 """
-USER_ID = "iEwn6pNjtRQZ7HJih01l339RI102"
-API_KEY = "86a6bbf9121049cea7ecf47d9774bccf"
+USER_ID = "uXE8bhiuwZTRpIpPr8rGuTdu4mJ3"
+API_KEY = "71f90348232d48c79f4ea79ed3fe4a3d"
 # Jennifer - options = TTSOptions(voice=s3://voice-cloning-zero-shot/775ae416-49bb-4fb6-bd45-740f205d20a1/jennifersaad/manifest.json)
 # Saul (William) - s3://mockingbird-prod/william_3_d2b62fd7-a52d-4bd1-a09a-fb2748eda979/voices/william_3/manifest.json
 # Select voice option for generation

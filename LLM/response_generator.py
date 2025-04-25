@@ -33,4 +33,3 @@ async def generate_response(**kwargs):
     print(f"Prompt sent to model: {messages}", flush=True)
 
     return response['message']['content']
-        

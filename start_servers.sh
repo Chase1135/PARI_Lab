@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # Pull the model from model_params.json
-config_file = "LLM/model_params.json"
-model = $(
+config_file="LLM/model_params.json"
+model=$(
   python3 - <<EOF
 import json
 print(json.load(open("$config_file"))["model"])
