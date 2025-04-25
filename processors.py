@@ -1,13 +1,11 @@
 from abc import ABC, abstractmethod
 from utils import Benchmark
-import asyncio
 from LLM.response_generator import generate_response
 from TTS.PlayHD import generate_speech
 from STT.SpeechFlow import convert_speech_to_text
 from buffers import INBOUND_BUFFERS, OUTBOUND_BUFFERS
 
-MAX_VISUAL_HISTORY = 10
-MAX_PHYSICAL_HISTORY = 10
+from config import MAX_VISUAL_HISTORY, MAX_PHYSICAL_HISTORY
 
 """Base class for all processors"""
 class BaseProcessor(ABC):

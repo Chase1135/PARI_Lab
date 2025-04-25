@@ -1,28 +1,42 @@
-from pymongo import MongoClient
+from pymongo import MongoClient, DESCENDING
+import config
 
 # Connect to MongoDB using connection string
 MONGO_URI = "mongodb+srv://wvf5102:EyoExhSi2mOrwDqy@cluster0.hgnhzej.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-client = MongoClient(MONGO_URI)
 
-# Access the database
-db = client["RunData"]
+def get_next_run_id(collection):
+    last_run = collection.find_one(sort=[("RUN_ID", DESCENDING)])
 
-# Access the collection
-collection = db["Iterations"]
+    if last_run and "run_id" in last_run:
+        return int(last_run["run_id"]) + 1
+    
+    return 1
 
-# Insert data 
-data = {
-    "run_id": "1",
-    "query": "Where is the tallest building in the world",
-    "response": "Saul is the greatest",
-    "time elapsed(sec)": "24.95",
-    "datetime": "2025-04-15T12:00:00",
-}
-insert_result = collection.insert_one(data)
-print(f"Inserted document with ID: {insert_result.inserted_id}")
+def store_config():
+    # Connect to MongoDB using connection string
+    client = MongoClient(MONGO_URI)
+    
+    # Access the database
+    db = client["RunData"]
 
-# Query data
-query = {"run_id": "1"}
-results = collection.find(query)
-for doc in results:
-    print(doc)
+    # Access the collection
+    collection = db["Iterations"]
+
+    run_id = get_next_run_id(collection=collection)
+
+    # Insert data 
+    config_dict = {
+        "RUN_ID": run_id,
+        "ENDPOINTS": config.ENDPOINTS,
+        "GET_MODALITIES": config.GET_MODALITIES,
+        "NCHANNELS": config.NCHANNELS,
+        "SAMPWIDTH": config.SAMPWIDTH,
+        "FRAMERATE": config.FRAMERATE,
+        "VISUAL_INTERVAL": config.VISUAL_INTERVAL,
+        "PHYSICAL_INTERVAL": config.PHYSICAL_INTERVAL,
+        "MAX_VISUAL_HISTORY": config.MAX_VISUAL_HISTORY,
+        "MAX_PHYSICAL_HISTORY": config.MAX_PHYSICAL_HISTORY,
+    }
+
+    result = collection.insert_one(config_dict)
+    print(f"Inserted config with ID: {result.inserted_id}")

@@ -3,3 +3,4 @@ uvicorn
 ollama
 pyht
 httpx
+pymongo

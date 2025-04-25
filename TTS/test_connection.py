@@ -114,4 +114,4 @@ def inspect_wav(filepath):
 
 if __name__ == "__main__":
     #asyncio.run(audio_main())
-    inspect_wav(os.path.abspath("Test(1).wav"))
+    inspect_wav(os.path.abspath("Test.wav"))

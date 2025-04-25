@@ -1,31 +1,15 @@
-from fastapi import FastAPI, APIRouter, Request, Response
 import asyncio
+from fastapi import FastAPI, APIRouter, Request, Response
 from pydantic import BaseModel
 from processors import DEFAULT_PROCESSORS, CUSTOM_PROCESSORS
 from buffers import OUTBOUND_BUFFERS
 from abc import ABC, abstractmethod
 from utils import Benchmark
 
+from config import ENDPOINTS, GET_MODALITIES, NCHANNELS, SAMPWIDTH, FRAMERATE, VISUAL_INTERVAL, PHYSICAL_INTERVAL
+from mongoDB import store_config
+
 app = FastAPI()
-
-ENDPOINTS = [
-    {"name": "textual", "modality": "textual"},
-    {"name": "audio", "modality": "audio"},
-    {"name": "visual", "modality": "visual"},
-    {"name": "physical", "modality": "physical"},
-    {"name": "custom", "modality": "textual", "handler": "custom"}
-]
-
-CHUNK_SIZE = 4096 # Size of chunks to transmit audio frames
-
-"""Audio Headers"""
-NCHANNELS = 1 # Number of channels (i.e. Monoaudio)
-SAMPWIDTH = 2 # Number of bytes per sample
-FRAMERATE = 48000 # Rate of play
-
-"""Post Intervals"""
-VISUAL_INTERVAL = 3
-PHYSICAL_INTERVAL = 3
 
 """Config endpoint to transmit necessary parameters to Unreal Engine"""
 @app.get("/config")
@@ -36,10 +20,7 @@ async def get_config():
         "visual": VISUAL_INTERVAL,
         "physical": PHYSICAL_INTERVAL
     }
-    get_modalities = [
-        "audio",
-        "physical"
-    ]
+    get_modalities = GET_MODALITIES
 
     # Parameters that Unreal Engine needsa
     CONFIG_DATA = {
@@ -50,6 +31,8 @@ async def get_config():
         "sampwidth": SAMPWIDTH,
         "framerate": FRAMERATE
     }
+
+    store_config()
         
     return CONFIG_DATA
 
