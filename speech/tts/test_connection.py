@@ -9,7 +9,7 @@ import os
 # Main function to launch both WebSockets
 async def main():
     # Fetch config data
-    config_raw = requests.get("http://localhost:5000/config")
+    config_raw = requests.get("http://localhost:8000/config")
     config = config_raw.json()
     print("Config:", config)
 
@@ -21,11 +21,11 @@ async def main():
     while True:
         msg = input("Enter message:")
 
-        requests.post(url="http://localhost:5000/textual", json={"data": msg})
+        requests.post(url="http://localhost:8000/textual", json={"data": msg})
 
         audio_data = b""
         while True:
-            data_raw = requests.get(url="http://localhost:5000/audio", stream=True)
+            data_raw = requests.get(url="http://localhost:8000/audio", stream=True)
 
             if data_raw.status_code == 204:
                 print("No audio ready, sleeping...")
@@ -147,7 +147,7 @@ def check_exr():
 
 
 if __name__ == "__main__":
-    #asyncio.run(main())
+    asyncio.run(main())
     #asyncio.run(audio_main())
     #inspect_wav(os.path.abspath("Test.wav"))
-    check_exr()
+    #check_exr()
