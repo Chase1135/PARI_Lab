@@ -36,8 +36,8 @@ async def main():
             break
 
         # Save received audio to a .wav file
-        with wave.open("TTS/wav_reconstruction_text.wav", "wb") as wf:
-            wf.setnchannels(nchannels)
+        with wave.open("wav_reconstruction_text.wav", "wb") as wf:
+            wf.setnchannels(1)
             wf.setsampwidth(sampwidth)
             wf.setframerate(framerate)
             wf.writeframes(audio_data)
@@ -111,7 +111,43 @@ def inspect_wav(filepath):
         print(f"Duration (seconds): {duration:.2f}")
 
 
+def check_exr():
+    import OpenEXR
+    import Imath
+    import numpy as np
+    from PIL import Image
+
+    # Load the .exr file
+    exr_file = OpenEXR.InputFile('righteye.exr')
+
+    # Get the image dimensions
+    dw = exr_file.header()['dataWindow']
+    size = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
+
+    # Read RGB channels
+    channels = ['R', 'G', 'B']
+    exr_data = {c: exr_file.channel(c, Imath.PixelType(Imath.PixelType.FLOAT)) for c in channels}
+
+    # Convert to numpy array
+    rgb = np.zeros((size[1], size[0], 3), dtype=np.float32)
+    for i, c in enumerate(channels):
+        rgb[..., i] = np.frombuffer(exr_data[c], dtype=np.float32).reshape(size[1], size[0])
+
+    # Normalize and convert to 8-bit image for viewing
+    rgb_normalized = (np.clip(rgb / np.percentile(rgb, 99), 0, 1) * 255).astype(np.uint8)
+    
+    # Convert to a Pillow image and show it
+    image = Image.fromarray(rgb_normalized, mode='RGB')  # <-- Explicitly specify RGB mode
+    image.save("debug_output.jpg", format="JPEG")
+
+    print(f"Pixel range: {np.min(rgb)} - {np.max(rgb)} (pre-normalization)")
+    print(f"Normalized range: {np.min(rgb_normalized)} - {np.max(rgb_normalized)}")
+
+
+
 
 if __name__ == "__main__":
-    asyncio.run(audio_main())
-    #inspect_wav(os.path.abspath("TTS/wav_reconstructed_from_harvard.wav"))
+    #asyncio.run(main())
+    #asyncio.run(audio_main())
+    #inspect_wav(os.path.abspath("Test.wav"))
+    check_exr()

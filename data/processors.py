@@ -1,9 +1,12 @@
 from abc import ABC, abstractmethod
-from utils import Benchmark
-from LLM.response_generator import generate_response
-from TTS.PlayHD import generate_speech
-from STT.SpeechFlow import convert_speech_to_text
-from buffers import INBOUND_BUFFERS, OUTBOUND_BUFFERS
+import OpenEXR
+import Imath
+import numpy as np
+from utils.utils import Benchmark
+from llm.response_generator import generate_response
+from speech.tts.playht import generate_speech
+from speech.stt.speechflow import convert_speech_to_text
+from data.buffers import INBOUND_BUFFERS, OUTBOUND_BUFFERS
 
 from config import MAX_VISUAL_HISTORY, MAX_PHYSICAL_HISTORY
 
@@ -47,7 +50,29 @@ class VisualProcessor(BaseProcessor):
     @Benchmark.time_execution
     async def process(self, data):
         print(f"Processing visual data: {len(data)} bytes", flush=True)
-        INBOUND_BUFFERS["visual"].append(data)
+
+        # Temp write to file
+        with open("temp.exr", "wb") as f:
+            f.write(data)
+
+        # Read temp file
+        exr_file = OpenEXR.InputFile("temp.exr")
+        dw = exr_file.header()['dataWindow']
+        size = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
+
+        # Grab RGB channels
+        channels = ['R', 'G', 'B']
+        exr_data = {c: exr_file.channel(c, Imath.PixelType(Imath.PixelType.FLOAT)) for c in channels}
+
+        # Convert to numpy array
+        rgb = np.zeros((size[1], size[0], 3), dtype=np.float32)
+        for i, c in enumerate(channels):
+            rgb[..., i] = np.frombuffer(exr_data[c], dtype=np.float32).reshape(size[1], size[0])
+
+        # Normalize and convert to 8-bit
+        rgb_normalized = (np.clip(rgb / np.percentile(rgb, 99), 0, 1) * 255).astype(np.uint8)
+
+        INBOUND_BUFFERS["visual"].append(rgb_normalized)
 
         if len(INBOUND_BUFFERS["visual"]) > MAX_VISUAL_HISTORY:
             INBOUND_BUFFERS["visual"].pop(0)

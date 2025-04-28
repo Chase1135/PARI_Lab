@@ -1,32 +1,34 @@
 #!/bin/bash
 set -euo pipefail
 
-# Pull the model from model_params.json
-config_file="LLM/model_params.json"
-model=$(
-  python3 - <<EOF
-import json
-print(json.load(open("$config_file"))["model"])
-EOF
-)
+# Load env variables
+if [ -f .env ]; then
+  export $(cat .env | xargs)
+fi
+
+echo "SERVER_HOST=$SERVER_HOST"
+echo "SERVER_PORT=$SERVER_PORT"
 
 # Start the Ollama server in the background
+export OLLAMA_HOST=0.0.0.0:11434
 ollama serve &
 
-sleep 3
+while ! nc -z 127.0.0.1 11434; do
+  sleep 1
+done
+
+# Pull the model from model_params.json
+config_file="llm/model_params.json"
+model=$(python3 -c "import json; print(json.load(open('$config_file'))['model'])")
 
 # Check if the model already exists
 if ! ollama list | grep -q "$model"; then
   # Pull the model if it doesn't exist
-  ollama pull "$model"
-
-  if [ $? -ne 0 ]; then
-    echo "Error pulling the model"
-    exit 1
-  fi
+  echo "Pulling model $model..."
+  ollama pull "$model" || { echo "Error pulling model"; exit 1; }
 else
   echo "Model $model already exists, skipping pull."
 fi
 
 # Start servers
-uvicorn server:app --host 0.0.0.0 --port 5000 --ws-ping-interval 20 --ws-ping-timeout 40
+uvicorn server:app --host 0.0.0.0 --port $SERVER_PORT

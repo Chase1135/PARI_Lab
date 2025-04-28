@@ -44,12 +44,14 @@ pip install -r requirements.txt
 1. Open Docker terminal
 2. Pull Docker image ('docker pull chasea1135/pari_lab_server:latest')
 3. Run container ('docker run -p 5000:5000 chasea1135/pari_lab_server:latest') OR click run on downloaded image
-4. If run from the images tab, enter port # (5000)
+4. If run from the images tab, enter port # to expose (e.g. 5000)
 
 RUNNING LOCALLY:
-1. Clone repository, install necessary dependencies (pydantic, fastapi, uvicorn, websockets, ollama)
-2. Open Docker terminal, navigate to the project folder
-3. Type 'docker-compose up --build' in the terminal
+1. Clone repository, install necessary dependencies (requirements.txt)
+2. Modify .env.template to specify API keys and desired IP/Port
+3. Open Docker terminal, navigate to the project folder
+4. Type 'docker-compose up --build' in the terminal
+5. When changes are ready to be uploaded to docker, run ('docker push chasea1135/pari_lab_server:latest')
 
 TO TEST:
 1. Run test_connection.py (type exit to close connection)

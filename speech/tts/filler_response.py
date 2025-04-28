@@ -3,14 +3,16 @@ from pyht.client import TTSOptions
 import asyncio
 import wave
 
+from config import PLAYHT_USER_ID, PLAYHT_API_KEY
+
 # William voice
 options = TTSOptions(voice="s3://mockingbird-prod/william_3_d2b62fd7-a52d-4bd1-a09a-fb2748eda979/voices/william_3/manifest.json")
 
 # Generate the .wav file for the filler response
 async def generate_filler_response():
     client = Client(
-        user_id="I9inKjkH0CRfUbpQbRahudvCDZ92",
-        api_key="af968b25edf8435bb65e2a9acb93e345"
+        user_id=PLAYHT_USER_ID,
+        api_key=PLAYHT_API_KEY
     )
 
     filler_text = "Let me think about that for a moment!"

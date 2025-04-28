@@ -2,7 +2,7 @@ from pymongo import MongoClient, DESCENDING
 import config
 
 # Connect to MongoDB using connection string
-MONGO_URI = "mongodb+srv://wvf5102:EyoExhSi2mOrwDqy@cluster0.hgnhzej.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URI = config.MONGO_URI
 
 def get_next_run_id(collection):
     last_run = collection.find_one(sort=[("RUN_ID", DESCENDING)])

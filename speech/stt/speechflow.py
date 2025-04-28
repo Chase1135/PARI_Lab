@@ -2,17 +2,15 @@ import os
 import wave
 import asyncio
 import httpx 
-from buffers import INBOUND_BUFFERS
+from data.buffers import INBOUND_BUFFERS
 
-from config import FRAMERATE, SAMPWIDTH, NCHANNELS
+from config import FRAMERATE, SAMPWIDTH, NCHANNELS, SPEECHFLOW_API_KEY, SPEECHFLOW_SECRET_KEY
 
-API_KEY_ID = "s1XyepwyxRdijzuf"
-API_KEY_SECRET = "3ht6liNE015yjdiZ"
 LANG = "en"
 FILE_PATH = "STT/user_speech.wav"
 RESULT_TYPE = 4
 
-headers = {"keyId": API_KEY_ID, "keySecret": API_KEY_SECRET}
+headers = {"keyId": SPEECHFLOW_API_KEY, "keySecret": SPEECHFLOW_SECRET_KEY}
 
 
 def write_wav_from_frames(frames: bytes, path: str, sample_rate=FRAMERATE, channels=NCHANNELS, sample_width=SAMPWIDTH):

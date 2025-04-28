@@ -4,3 +4,7 @@ ollama
 pyht
 httpx
 pymongo
+python-dotenv
+openexr
+Pillow
+numpy

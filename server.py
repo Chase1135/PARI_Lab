@@ -1,13 +1,13 @@
 import asyncio
 from fastapi import FastAPI, APIRouter, Request, Response
 from pydantic import BaseModel
-from processors import DEFAULT_PROCESSORS, CUSTOM_PROCESSORS
-from buffers import OUTBOUND_BUFFERS
+from data.processors import DEFAULT_PROCESSORS, CUSTOM_PROCESSORS
+from data.buffers import OUTBOUND_BUFFERS
 from abc import ABC, abstractmethod
-from utils import Benchmark
+from utils.utils import Benchmark
 
-from config import ENDPOINTS, GET_MODALITIES, NCHANNELS, SAMPWIDTH, FRAMERATE, VISUAL_INTERVAL, PHYSICAL_INTERVAL
-from mongoDB import store_config
+from config import SERVER_HOST, SERVER_PORT, ENDPOINTS, GET_MODALITIES, NCHANNELS, SAMPWIDTH, FRAMERATE, VISUAL_INTERVAL, PHYSICAL_INTERVAL
+from data.mongodb import store_config
 
 app = FastAPI()
 
@@ -131,5 +131,6 @@ def initialize_endpoints():
         handler = handler_class(name=name, modality=modality)
         app.include_router(handler.router)
         print(f"Registered REST Endpoint: /{name} (modality: {modality}) (handler: {handler.__class__.__name__})", flush=True)
+
 
 initialize_endpoints()
